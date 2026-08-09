@@ -1,0 +1,627 @@
+import { useState, useEffect } from "react";
+
+const DARK = {
+  bg:"linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+  card:"rgba(255,255,255,0.06)",border:"rgba(255,255,255,0.1)",
+  input:"rgba(255,255,255,0.07)",inputBorder:"rgba(255,255,255,0.15)",
+  text:"#fff",sub:"rgba(255,255,255,0.45)",mid:"rgba(255,255,255,0.75)",
+  surface:"rgba(255,255,255,0.03)",nav:"rgba(15,12,41,0.96)",
+};
+const LIGHT = {
+  bg:"linear-gradient(135deg,#f0f4ff,#e8ecff,#f5f0ff)",
+  card:"rgba(255,255,255,0.92)",border:"rgba(167,139,250,0.2)",
+  input:"#fff",inputBorder:"rgba(167,139,250,0.3)",
+  text:"#1a1040",sub:"#6b7280",mid:"#374151",
+  surface:"rgba(167,139,250,0.04)",nav:"rgba(240,244,255,0.97)",
+};
+
+const GOOGLE_COLORS = { bg:"#fff", text:"#3c4043", border:"#dadce0" };
+
+function Avatar({ name, size=36 }) {
+  const initials = name ? name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase() : "?";
+  const colors = ["#a78bfa","#60a5fa","#34d399","#f59e0b","#f87171","#818cf8"];
+  const color = colors[name ? name.charCodeAt(0) % colors.length : 0];
+  return (
+    <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color},${color}99)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.38,fontWeight:700,color:"#fff",flexShrink:0}}>
+      {initials}
+    </div>
+  );
+}
+
+function OTPInput({ value, onChange }) {
+  const digits = 6;
+  const vals = value.split("").concat(Array(digits).fill("")).slice(0,digits);
+  const handleKey = (i, e) => {
+    if (e.key === "Backspace") {
+      const n = vals.slice(); n[i] = "";
+      onChange(n.join(""));
+      if (i > 0) document.getElementById(`otp-${i-1}`)?.focus();
+    } else if (/^\d$/.test(e.key)) {
+      const n = vals.slice(); n[i] = e.key;
+      onChange(n.join(""));
+      if (i < digits-1) document.getElementById(`otp-${i+1}`)?.focus();
+    }
+  };
+  return (
+    <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+      {vals.map((v,i)=>(
+        <input key={i} id={`otp-${i}`} value={v} maxLength={1}
+          onChange={()=>{}}
+          onKeyDown={e=>handleKey(i,e)}
+          style={{width:44,height:52,borderRadius:12,border:`2px solid ${v?"#a78bfa":"rgba(167,139,250,0.3)"}`,background:v?"rgba(167,139,250,0.1)":"rgba(255,255,255,0.05)",color:"#fff",fontSize:22,fontWeight:800,textAlign:"center",outline:"none",transition:"all 0.2s",fontFamily:"inherit"}}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function ClientAIAuth() {
+  const [dark, setDark] = useState(true);
+  const T = dark ? DARK : LIGHT;
+
+  // Auth state
+  const [authScreen, setAuthScreen] = useState("landing"); // landing | login | signup | otp | app
+  const [user, setUser] = useState(null);
+  const [authTab, setAuthTab] = useState("signup"); // signup | login
+
+  // Forms
+  const [signupForm, setSignupForm] = useState({ name:"", email:"", password:"", confirmPassword:"", phone:"", country:"", businessName:"" });
+  const [loginForm, setLoginForm] = useState({ email:"", password:"" });
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfPass, setShowConfPass] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [authStep, setAuthStep] = useState(1); // 1=basic | 2=business | 3=otp
+
+  // App state
+  const [appTab, setAppTab] = useState("dashboard");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
+
+  // OTP countdown
+  useEffect(() => {
+    if (otpTimer > 0) {
+      const t = setTimeout(() => setOtpTimer(v => v-1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [otpTimer]);
+
+  // Saved users (simulate database)
+  const [savedUsers, setSavedUsers] = useState([
+    { name:"Demo User", email:"demo@clientai.com", password:"demo1234", phone:"+1 234 567 8900", country:"USA", businessName:"Demo Studio", plan:"pro", joined:"Jan 2026", avatar:null }
+  ]);
+
+  const validateSignup = () => {
+    const e = {};
+    if (!signupForm.name.trim()) e.name = "Name is required";
+    if (!signupForm.email.includes("@")) e.email = "Valid email required";
+    if (signupForm.password.length < 8) e.password = "Min 8 characters";
+    if (signupForm.password !== signupForm.confirmPassword) e.confirmPassword = "Passwords don't match";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const validateLogin = () => {
+    const e = {};
+    if (!loginForm.email.includes("@")) e.email = "Valid email required";
+    if (!loginForm.password) e.password = "Password required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSendOTP = async () => {
+    if (!validateSignup()) return;
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setOtpSent(true);
+    setOtpTimer(60);
+    setAuthStep(3);
+    setLoading(false);
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length < 6) { setErrors({otp:"Enter 6-digit code"}); return; }
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 1000));
+    // Simulate: accept 123456 or any 6 digits
+    const newUser = {
+      name: signupForm.name, email: signupForm.email, password: signupForm.password,
+      phone: signupForm.phone, country: signupForm.country, businessName: signupForm.businessName,
+      plan: "free", joined: new Date().toLocaleDateString("en-US",{month:"short",year:"numeric"}),
+    };
+    setSavedUsers(u => [...u, newUser]);
+    setUser(newUser);
+    setLoading(false);
+    setAuthScreen("app");
+  };
+
+  const handleLogin = async () => {
+    if (!validateLogin()) return;
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 1000));
+    const found = savedUsers.find(u => u.email === loginForm.email && u.password === loginForm.password);
+    if (found) { setUser(found); setAuthScreen("app"); setErrors({}); }
+    else { setErrors({login:"Invalid email or password. Try demo@clientai.com / demo1234"}); }
+    setLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    await new Promise(r => setTimeout(r, 1800));
+    const googleUser = {
+      name:"Google User", email:"googleuser@gmail.com", phone:"", country:"", businessName:"",
+      plan:"free", joined:new Date().toLocaleDateString("en-US",{month:"short",year:"numeric"}),
+    };
+    setUser(googleUser);
+    setGoogleLoading(false);
+    setAuthScreen("app");
+  };
+
+  const handleLogout = () => {
+    setUser(null); setAuthScreen("landing"); setSignupForm({name:"",email:"",password:"",confirmPassword:"",phone:"",country:"",businessName:""});
+    setLoginForm({email:"",password:""}); setOtp(""); setAuthStep(1); setShowProfileMenu(false);
+  };
+
+  const handleSaveProfile = () => {
+    setUser(u => ({...u,...profileForm}));
+    setSavedUsers(users => users.map(u => u.email===user.email ? {...u,...profileForm} : u));
+    setEditingProfile(false);
+  };
+
+  const planColors = { free:"#6b7280", pro:"#a78bfa", agency:"#60a5fa" };
+  const planLabel = { free:"Free", pro:"Pro ⭐", agency:"Agency 👑" };
+
+  // Shared UI
+  const card = (children, extra={}) => <div style={{background:T.card,borderRadius:16,border:`1px solid ${T.border}`,padding:20,marginBottom:12,...extra}}>{children}</div>;
+  const inp = (key, placeholder, label, form, setForm, type="text", extra) => (
+    <div>
+      <label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{label}</label>
+      <div style={{position:"relative"}}>
+        <input type={type} value={form[key]} placeholder={placeholder}
+          onChange={e=>{ setForm(f=>({...f,[key]:e.target.value})); setErrors(er=>({...er,[key]:""})); }}
+          style={{width:"100%",padding:"12px 14px",paddingRight:extra?"44px":"14px",borderRadius:11,fontSize:14,background:T.input,border:`1.5px solid ${errors[key]?"#f87171":T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit",transition:"border 0.2s"}}/>
+        {extra&&<button type="button" onClick={extra.toggle} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:T.sub}}>{extra.show?"🙈":"👁️"}</button>}
+      </div>
+      {errors[key]&&<div style={{fontSize:11,color:"#f87171",marginTop:3}}>⚠ {errors[key]}</div>}
+    </div>
+  );
+
+  const GoogleBtn = ({ label }) => (
+    <button onClick={handleGoogleSignIn} disabled={googleLoading}
+      style={{width:"100%",padding:"12px",borderRadius:11,border:"1.5px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.08)",color:T.text,fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,transition:"all 0.2s"}}>
+      {googleLoading ? "Connecting..." : <><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>{label}</>}
+    </button>
+  );
+
+  const Divider = () => (
+    <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
+      <div style={{flex:1,height:1,background:T.border}}/><span style={{fontSize:12,color:T.sub}}>or</span><div style={{flex:1,height:1,background:T.border}}/>
+    </div>
+  );
+
+  // ============================================================
+  // LANDING
+  // ============================================================
+  if (authScreen === "landing") return (
+    <div style={{minHeight:"100vh",background:dark?"#0a0814":"#f0f4ff",fontFamily:"'Inter',sans-serif",color:dark?"#f0eeff":"#1a1040",transition:"all 0.3s"}}>
+      <div style={{background:dark?"rgba(10,8,20,0.9)":"rgba(255,255,255,0.9)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${dark?"rgba(167,139,250,0.15)":"rgba(167,139,250,0.2)"}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>⚡</div>
+          <span style={{fontWeight:800,fontSize:16,color:dark?"#fff":"#1a1040"}}>ClientAI Pro</span>
+        </div>
+        <div style={{display:"flex",gap:9,alignItems:"center"}}>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:8,background:dark?"rgba(255,255,255,0.08)":"rgba(124,58,237,0.08)",border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.2)"}`,color:dark?"#fff":"#1a1040",cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+          <button onClick={()=>{setAuthScreen("auth");setAuthTab("login");}} style={{padding:"8px 16px",borderRadius:100,border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.3)"}`,background:"transparent",color:dark?"rgba(255,255,255,0.7)":"#6b7280",cursor:"pointer",fontSize:13,fontWeight:600}}>Log In</button>
+          <button onClick={()=>{setAuthScreen("auth");setAuthTab("signup");}} style={{padding:"8px 18px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 4px 16px rgba(167,139,250,0.3)"}}>Sign Up Free ⚡</button>
+        </div>
+      </div>
+      <div style={{textAlign:"center",padding:"90px 20px 60px",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"10%",left:"50%",transform:"translateX(-50%)",width:600,height:300,background:"radial-gradient(ellipse,rgba(167,139,250,0.15) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:dark?"rgba(167,139,250,0.12)":"rgba(124,58,237,0.08)",border:`1px solid ${dark?"rgba(167,139,250,0.3)":"rgba(124,58,237,0.15)"}`,borderRadius:100,padding:"5px 14px",fontSize:12,color:"#a78bfa",fontWeight:600,marginBottom:22}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"#a78bfa",display:"inline-block"}}/>⚡ 10 AI Tools · 24 Languages · Free to Start
+        </div>
+        <h1 style={{fontSize:"clamp(32px,7vw,64px)",fontWeight:800,lineHeight:1.05,letterSpacing:"-2px",margin:"0 0 20px",color:dark?"#fff":"#1a1040"}}>
+          Get more clients with <span style={{background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>AI built for you</span>
+        </h1>
+        <p style={{fontSize:"clamp(15px,2vw,18px)",color:dark?"rgba(240,238,255,0.6)":"#6b7280",maxWidth:480,margin:"0 auto 36px",lineHeight:1.65}}>
+          Strategy, outreach, invoices, proposals, client tracking — all powered by AI, in any language.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:52}}>
+          <button onClick={()=>{setAuthScreen("auth");setAuthTab("signup");}} style={{padding:"14px 30px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 24px rgba(167,139,250,0.35)"}}>⚡ Start Free — No Card Needed</button>
+          <button onClick={()=>{setAuthScreen("auth");setAuthTab("login");}} style={{padding:"14px 30px",borderRadius:100,border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.3)"}`,background:"transparent",color:dark?"#fff":"#1a1040",fontSize:16,fontWeight:600,cursor:"pointer"}}>Log In →</button>
+        </div>
+        <div style={{display:"flex",gap:36,justifyContent:"center",flexWrap:"wrap"}}>
+          {[["10","AI Tools"],["24","Languages"],["60s","To Strategy"],["Free","To Start"]].map(([n,l])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontSize:28,fontWeight:800,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{n}</div>
+              <div style={{fontSize:12,color:dark?"rgba(255,255,255,0.4)":"#9ca3af",marginTop:2}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Tools */}
+      <div style={{maxWidth:900,margin:"0 auto",padding:"0 20px 80px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:11}}>
+          {[["⚡","Strategy","Full plan in 60s"],["👥","Tracker","Track every lead"],["📱","Social","Ready-to-post content"],["💰","Pricing","Know what to charge"],["🧾","Invoice","Professional invoices"],["📄","Proposal","Win more clients"],["🔔","Follow-up","Never lose a lead"],["✨","Name AI","Perfect business name"],["🔍","Competitor","Beat competition"],["📂","History","All strategies saved"]].map(([icon,name,desc])=>(
+            <div key={name} style={{background:dark?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.8)",border:`1px solid ${dark?"rgba(255,255,255,0.08)":"rgba(167,139,250,0.15)"}`,borderRadius:13,padding:16,cursor:"pointer"}} onClick={()=>{setAuthScreen("auth");setAuthTab("signup");}}>
+              <div style={{fontSize:22,marginBottom:8}}>{icon}</div>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:3,color:dark?"#fff":"#1a1040"}}>{name}</div>
+              <div style={{fontSize:11,color:dark?"rgba(255,255,255,0.4)":"#9ca3af",lineHeight:1.5}}>{desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:"center",marginTop:48,padding:"40px 20px",background:dark?"rgba(167,139,250,0.06)":"rgba(124,58,237,0.04)",border:`1px solid ${dark?"rgba(167,139,250,0.15)":"rgba(167,139,250,0.2)"}`,borderRadius:18}}>
+          <h2 style={{fontSize:"clamp(20px,4vw,32px)",fontWeight:800,margin:"0 0 10px",color:dark?"#fff":"#1a1040"}}>Ready to get your <span style={{background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>next client?</span></h2>
+          <p style={{color:dark?"rgba(255,255,255,0.45)":"#9ca3af",fontSize:14,marginBottom:24}}>Free account · No credit card · Start in 60 seconds</p>
+          <button onClick={()=>{setAuthScreen("auth");setAuthTab("signup");}} style={{padding:"13px 28px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Create Free Account →</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // AUTH (Sign up / Login / OTP)
+  // ============================================================
+  if (authScreen === "auth") return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,display:"flex",flexDirection:"column",transition:"all 0.3s"}}>
+      {/* Header */}
+      <div style={{padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <button onClick={()=>setAuthScreen("landing")} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",color:T.text}}>
+          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+          <span style={{fontWeight:800,fontSize:15,color:T.text}}>ClientAI Pro</span>
+        </button>
+        <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+      </div>
+
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 16px"}}>
+        <div style={{width:"100%",maxWidth:420}}>
+
+          {/* OTP Screen */}
+          {authTab==="signup"&&authStep===3 ? (
+            <div>
+              {card(<div style={{textAlign:"center"}}>
+                <div style={{fontSize:44,marginBottom:12}}>📧</div>
+                <h2 style={{fontSize:22,fontWeight:800,margin:"0 0 6px",color:T.text}}>Check your email</h2>
+                <p style={{color:T.sub,fontSize:13,marginBottom:24}}>We sent a 6-digit code to <strong style={{color:T.text}}>{signupForm.email}</strong></p>
+                <OTPInput value={otp} onChange={setOtp}/>
+                {errors.otp&&<div style={{fontSize:12,color:"#f87171",marginTop:8}}>⚠ {errors.otp}</div>}
+                <p style={{fontSize:12,color:T.sub,margin:"14px 0 0"}}>Enter code <strong style={{color:"#a78bfa"}}>123456</strong> to demo</p>
+              </div>)}
+              <button onClick={handleVerifyOTP} disabled={loading||otp.length<6}
+                style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:otp.length<6?(dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.07)"):"linear-gradient(135deg,#a78bfa,#60a5fa)",color:otp.length<6?(dark?"rgba(255,255,255,0.25)":"rgba(0,0,0,0.2)"):"#fff",fontWeight:700,fontSize:15,cursor:"pointer",marginBottom:10}}>
+                {loading?"Verifying...":"✅ Verify & Create Account"}
+              </button>
+              <div style={{textAlign:"center"}}>
+                {otpTimer>0?<p style={{fontSize:13,color:T.sub}}>Resend code in {otpTimer}s</p>:
+                <button onClick={()=>{setOtpTimer(60);}} style={{background:"none",border:"none",color:"#a78bfa",fontSize:13,cursor:"pointer",fontWeight:600}}>Resend code</button>}
+                <button onClick={()=>{setAuthStep(1);setOtp("");}} style={{background:"none",border:"none",color:T.sub,fontSize:12,cursor:"pointer",marginTop:6,display:"block",margin:"6px auto 0"}}>← Back to sign up</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Tabs */}
+              <div style={{display:"flex",background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,padding:4,marginBottom:20}}>
+                {["signup","login"].map(tab=>(
+                  <button key={tab} onClick={()=>{setAuthTab(tab);setErrors({});setAuthStep(1);}}
+                    style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:authTab===tab?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",color:authTab===tab?"#fff":T.sub,fontWeight:700,fontSize:14,cursor:"pointer",transition:"all 0.2s"}}>
+                    {tab==="signup"?"Sign Up":"Log In"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sign Up */}
+              {authTab==="signup"&&(
+                <div>
+                  <div style={{textAlign:"center",marginBottom:20}}>
+                    <h2 style={{fontSize:22,fontWeight:800,margin:"0 0 4px",color:T.text}}>Create your account</h2>
+                    <p style={{color:T.sub,fontSize:13,margin:0}}>Free forever · No card needed</p>
+                  </div>
+                  <GoogleBtn label="Sign up with Google"/>
+                  <Divider/>
+                  {authStep===1&&(
+                    <div>
+                      {card(<div style={{display:"flex",flexDirection:"column",gap:11}}>
+                        <div style={{fontWeight:700,fontSize:13,color:"#a78bfa",marginBottom:2}}>👤 Personal Info</div>
+                        {inp("name","e.g. Sarah Johnson","Full Name",signupForm,setSignupForm)}
+                        {inp("email","e.g. sarah@studio.com","Email Address",signupForm,setSignupForm)}
+                        {inp("password","Min 8 characters","Password",signupForm,setSignupForm,showPass?"text":"password",{show:showPass,toggle:()=>setShowPass(v=>!v)})}
+                        {inp("confirmPassword","Repeat password","Confirm Password",signupForm,setSignupForm,showConfPass?"text":"password",{show:showConfPass,toggle:()=>setShowConfPass(v=>!v)})}
+                      </div>)}
+                      <button onClick={()=>{if(validateSignup())setAuthStep(2);}}
+                        style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>
+                        Next: Business Info →
+                      </button>
+                    </div>
+                  )}
+                  {authStep===2&&(
+                    <div>
+                      {card(<div style={{display:"flex",flexDirection:"column",gap:11}}>
+                        <div style={{fontWeight:700,fontSize:13,color:"#a78bfa",marginBottom:2}}>🏢 Business Info</div>
+                        {inp("businessName","e.g. Studio Nook","Business / Company Name",signupForm,setSignupForm)}
+                        {inp("phone","e.g. +66 89 123 4567","Phone / WhatsApp",signupForm,setSignupForm)}
+                        <div>
+                          <label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Country</label>
+                          <select value={signupForm.country} onChange={e=>setSignupForm(f=>({...f,country:e.target.value}))}
+                            style={{width:"100%",padding:"12px 14px",borderRadius:11,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box"}}>
+                            <option value="">Select country...</option>
+                            {["Thailand","India","Bangladesh","USA","UK","Singapore","Malaysia","Indonesia","Vietnam","Philippines","Japan","South Korea","China","Germany","France","UAE","Australia","Canada","Brazil","Kenya"].map(c=><option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div style={{background:dark?"rgba(52,211,153,0.08)":"rgba(22,163,74,0.06)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:9,padding:"10px 12px",fontSize:12,color:"#34d399"}}>
+                          ✅ You can skip business info and fill it later in your profile
+                        </div>
+                      </div>)}
+                      <div style={{display:"flex",gap:9}}>
+                        <button onClick={()=>setAuthStep(1)} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600,fontSize:13,cursor:"pointer"}}>← Back</button>
+                        <button onClick={handleSendOTP} disabled={loading}
+                          style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                          {loading?"Sending OTP...":"📧 Send Verification Code"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <p style={{textAlign:"center",fontSize:12,color:T.sub,marginTop:14}}>
+                    Already have an account? <button onClick={()=>{setAuthTab("login");setErrors({});setAuthStep(1);}} style={{background:"none",border:"none",color:"#a78bfa",cursor:"pointer",fontWeight:700,fontSize:12}}>Log in</button>
+                  </p>
+                </div>
+              )}
+
+              {/* Login */}
+              {authTab==="login"&&(
+                <div>
+                  <div style={{textAlign:"center",marginBottom:20}}>
+                    <h2 style={{fontSize:22,fontWeight:800,margin:"0 0 4px",color:T.text}}>Welcome back!</h2>
+                    <p style={{color:T.sub,fontSize:13,margin:0}}>Log in to your ClientAI account</p>
+                  </div>
+                  <GoogleBtn label="Continue with Google"/>
+                  <Divider/>
+                  {card(<div style={{display:"flex",flexDirection:"column",gap:11}}>
+                    {inp("email","your@email.com","Email Address",loginForm,setLoginForm)}
+                    {inp("password","Your password","Password",loginForm,setLoginForm,showPass?"text":"password",{show:showPass,toggle:()=>setShowPass(v=>!v)})}
+                    {errors.login&&<div style={{background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.3)",borderRadius:9,padding:"9px 12px",fontSize:12,color:"#f87171"}}>⚠ {errors.login}</div>}
+                    <button onClick={()=>{}} style={{background:"none",border:"none",color:"#a78bfa",fontSize:12,cursor:"pointer",textAlign:"right",padding:0,fontWeight:600}}>Forgot password?</button>
+                  </div>)}
+                  <button onClick={handleLogin} disabled={loading}
+                    style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",marginBottom:10}}>
+                    {loading?"Logging in...":"🔐 Log In"}
+                  </button>
+                  <div style={{textAlign:"center",background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:10}}>
+                    <div style={{fontSize:12,color:T.sub,marginBottom:4}}>Demo account:</div>
+                    <div style={{fontSize:13,color:T.mid}}><strong style={{color:"#a78bfa"}}>demo@clientai.com</strong> / <strong style={{color:"#a78bfa"}}>demo1234</strong></div>
+                  </div>
+                  <p style={{textAlign:"center",fontSize:12,color:T.sub}}>
+                    No account? <button onClick={()=>{setAuthTab("signup");setErrors({});}} style={{background:"none",border:"none",color:"#a78bfa",cursor:"pointer",fontWeight:700,fontSize:12}}>Sign up free</button>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // MAIN APP
+  // ============================================================
+  if (authScreen === "app" && user) return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,transition:"all 0.3s"}}>
+      {/* Header */}
+      <div style={{background:dark?"rgba(15,12,41,0.95)":"rgba(240,244,255,0.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.border}`,padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+          <div><div style={{fontWeight:700,fontSize:13,color:T.text}}>ClientAI Pro</div><div style={{fontSize:9,color:T.sub}}>{planLabel[user.plan]}</div></div>
+        </div>
+        <div style={{display:"flex",gap:7,alignItems:"center"}}>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"5px 8px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+          {/* Profile */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setShowProfileMenu(v=>!v)} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 10px 5px 5px",borderRadius:100,background:T.card,border:`1px solid ${T.border}`,cursor:"pointer"}}>
+              <Avatar name={user.name} size={26}/>
+              <span style={{fontSize:13,fontWeight:600,color:T.text,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name.split(" ")[0]}</span>
+              <span style={{fontSize:9,opacity:0.5}}>▼</span>
+            </button>
+            {showProfileMenu&&(
+              <div style={{position:"absolute",right:0,top:"110%",background:T.drop||T.nav,border:`1px solid ${T.border}`,borderRadius:14,padding:10,zIndex:300,width:220,boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 6px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:8}}>
+                  <Avatar name={user.name} size={38}/>
+                  <div><div style={{fontWeight:700,fontSize:14,color:T.text}}>{user.name}</div><div style={{fontSize:11,color:T.sub}}>{user.email}</div><span style={{background:`${planColors[user.plan]}20`,color:planColors[user.plan],border:`1px solid ${planColors[user.plan]}40`,borderRadius:100,padding:"1px 8px",fontSize:10,fontWeight:700}}>{planLabel[user.plan]}</span></div>
+                </div>
+                {[{icon:"👤",label:"My Profile",action:()=>{setAppTab("profile");setShowProfileMenu(false);}},{icon:"📊",label:"Dashboard",action:()=>{setAppTab("dashboard");setShowProfileMenu(false);}},{icon:"⭐",label:"Upgrade Plan",action:()=>{setAppTab("upgrade");setShowProfileMenu(false);}},{icon:"⚙️",label:"Settings",action:()=>{setAppTab("settings");setShowProfileMenu(false);}},{icon:"🏠",label:"Landing Page",action:()=>{setAuthScreen("landing");setShowProfileMenu(false);}},{icon:"🚪",label:"Log Out",action:handleLogout}].map(item=>(
+                  <button key={item.label} onClick={item.action} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 10px",borderRadius:9,border:"none",background:"transparent",color:item.label==="Log Out"?"#f87171":T.mid,cursor:"pointer",fontSize:13,fontWeight:item.label==="Log Out"?700:500,textAlign:"left"}}><span style={{fontSize:15}}>{item.icon}</span>{item.label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:700,margin:"0 auto",padding:"22px 15px 80px"}}>
+
+        {/* DASHBOARD */}
+        {appTab==="dashboard"&&(
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:22}}>
+              <Avatar name={user.name} size={52}/>
+              <div>
+                <h2 style={{fontSize:20,fontWeight:800,margin:"0 0 3px",color:T.text}}>Welcome back, {user.name.split(" ")[0]}! 👋</h2>
+                <p style={{color:T.sub,fontSize:13,margin:0}}>{user.businessName||"ClientAI Pro"} · {user.country||"Worldwide"} · Member since {user.joined}</p>
+              </div>
+            </div>
+            {/* Plan card */}
+            {card(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:12,color:T.sub,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Current Plan</div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:800,fontSize:20,color:T.text}}>{planLabel[user.plan]}</span>
+                  <span style={{background:`${planColors[user.plan]}20`,color:planColors[user.plan],border:`1px solid ${planColors[user.plan]}40`,borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700}}>Active</span>
+                </div>
+                {user.plan==="free"&&<p style={{fontSize:12,color:T.sub,margin:"5px 0 0"}}>Upgrade to unlock all 10 tools</p>}
+              </div>
+              {user.plan==="free"&&<button onClick={()=>setAppTab("upgrade")} style={{padding:"9px 16px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>⭐ Upgrade</button>}
+            </div>)}
+            {/* Quick stats */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              {[{icon:"⚡",label:"Strategies Made",val:"0",color:"#a78bfa"},{icon:"👥",label:"Clients Tracked",val:"0",color:"#60a5fa"},{icon:"🧾",label:"Invoices Sent",val:"0",color:"#34d399"},{icon:"📄",label:"Proposals Sent",val:"0",color:"#f59e0b"}].map(s=>(
+                card(<div key={s.label} style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:11,background:`${s.color}20`,border:`1px solid ${s.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{s.icon}</div>
+                  <div><div style={{fontWeight:800,fontSize:22,color:T.text}}>{s.val}</div><div style={{fontSize:11,color:T.sub}}>{s.label}</div></div>
+                </div>,{marginBottom:0})
+              ))}
+            </div>
+            {/* Quick actions */}
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>🚀 Quick Actions</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {[{icon:"⚡",label:"Generate Strategy",tab:"generate"},{icon:"👥",label:"Add Client",tab:"tracker"},{icon:"🧾",label:"Create Invoice",tab:"invoice"},{icon:"📄",label:"Write Proposal",tab:"proposal"}].map(a=>(
+                  <button key={a.label} onClick={()=>setAppTab(a.tab)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.surface,color:T.mid,cursor:"pointer",fontSize:13,fontWeight:600,textAlign:"left"}}>
+                    <span style={{fontSize:18}}>{a.icon}</span>{a.label}
+                  </button>
+                ))}
+              </div>
+            </div>)}
+            {/* Profile summary */}
+            {card(<div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontWeight:700,fontSize:14,color:T.text}}>👤 Your Profile</div>
+                <button onClick={()=>setAppTab("profile")} style={{padding:"5px 11px",borderRadius:8,border:`1px solid ${T.border}`,background:T.surface,color:"#a78bfa",fontSize:12,fontWeight:600,cursor:"pointer"}}>Edit →</button>
+              </div>
+              {[["Name",user.name],["Email",user.email],["Phone",user.phone||"Not set"],["Business",user.businessName||"Not set"],["Country",user.country||"Not set"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+                  <span style={{fontSize:13,color:T.sub}}>{l}</span>
+                  <span style={{fontSize:13,fontWeight:600,color:v==="Not set"?T.sub:T.text}}>{v}</span>
+                </div>
+              ))}
+            </div>)}
+          </div>
+        )}
+
+        {/* PROFILE */}
+        {appTab==="profile"&&(
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:18,color:T.text}}>👤 My Profile</h2>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
+              <Avatar name={user.name} size={64}/>
+              <div>
+                <div style={{fontWeight:800,fontSize:18,color:T.text}}>{user.name}</div>
+                <div style={{fontSize:13,color:T.sub}}>{user.email}</div>
+                <div style={{fontSize:12,color:T.sub}}>Member since {user.joined}</div>
+                <span style={{background:`${planColors[user.plan]}20`,color:planColors[user.plan],border:`1px solid ${planColors[user.plan]}40`,borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700}}>{planLabel[user.plan]}</span>
+              </div>
+            </div>
+            {editingProfile?(
+              <div>
+                {card(<div style={{display:"flex",flexDirection:"column",gap:11}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#a78bfa",marginBottom:2}}>Edit Profile</div>
+                  {["name","businessName","phone","country"].map(key=>(
+                    <div key={key}><label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{key==="businessName"?"Business Name":key.charAt(0).toUpperCase()+key.slice(1)}</label>
+                    <input value={profileForm[key]||""} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} style={{width:"100%",padding:"11px 13px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+                  ))}
+                </div>)}
+                <div style={{display:"flex",gap:9}}>
+                  <button onClick={()=>setEditingProfile(false)} style={{flex:1,padding:"12px",borderRadius:11,border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600,fontSize:13,cursor:"pointer"}}>Cancel</button>
+                  <button onClick={handleSaveProfile} style={{flex:2,padding:"12px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>💾 Save Changes</button>
+                </div>
+              </div>
+            ):(
+              <div>
+                {card(<div>
+                  {[["Full Name",user.name],["Email",user.email],["Business",user.businessName||"—"],["Phone",user.phone||"—"],["Country",user.country||"—"],["Plan",planLabel[user.plan]],["Member Since",user.joined]].map(([l,v])=>(
+                    <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
+                      <span style={{fontSize:13,color:T.sub}}>{l}</span>
+                      <span style={{fontSize:13,fontWeight:600,color:v==="—"?T.sub:T.text}}>{v}</span>
+                    </div>
+                  ))}
+                </div>)}
+                <div style={{display:"flex",gap:9}}>
+                  <button onClick={()=>{setProfileForm({name:user.name,businessName:user.businessName,phone:user.phone,country:user.country});setEditingProfile(true);}} style={{flex:1,padding:"12px",borderRadius:11,border:`1px solid ${T.border}`,background:T.card,color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer"}}>✏️ Edit Profile</button>
+                  <button onClick={handleLogout} style={{flex:1,padding:"12px",borderRadius:11,border:"1px solid rgba(248,113,113,0.3)",background:"rgba(248,113,113,0.08)",color:"#f87171",fontWeight:700,fontSize:13,cursor:"pointer"}}>🚪 Log Out</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SETTINGS */}
+        {appTab==="settings"&&(
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:18,color:T.text}}>⚙️ Settings</h2>
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>Appearance</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
+                <div><div style={{fontSize:14,color:T.text,fontWeight:600}}>Dark Mode</div><div style={{fontSize:12,color:T.sub}}>Toggle between dark and light theme</div></div>
+                <button onClick={()=>setDark(d=>!d)} style={{width:48,height:26,borderRadius:100,border:"none",background:dark?"linear-gradient(135deg,#a78bfa,#60a5fa)":"rgba(0,0,0,0.15)",cursor:"pointer",position:"relative",transition:"all 0.3s"}}>
+                  <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:dark?24:4,transition:"left 0.3s",boxShadow:"0 1px 4px rgba(0,0,0,0.2)"}}/>
+                </button>
+              </div>
+            </div>)}
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>Account</div>
+              {[{label:"Change Password",sub:"Update your account password",icon:"🔐"},{label:"Email Notifications",sub:"Manage email preferences",icon:"📧"},{label:"Delete Account",sub:"Permanently delete your account",icon:"🗑️",danger:true}].map(s=>(
+                <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:`1px solid ${T.border}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:18}}>{s.icon}</span><div><div style={{fontSize:14,color:s.danger?"#f87171":T.text,fontWeight:600}}>{s.label}</div><div style={{fontSize:12,color:T.sub}}>{s.sub}</div></div></div>
+                  <span style={{color:T.sub,fontSize:16}}>›</span>
+                </div>
+              ))}
+            </div>)}
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:8}}>About</div>
+              <div style={{fontSize:13,color:T.sub,lineHeight:1.7}}>ClientAI Pro v2.0<br/>10 AI Tools · 24 Languages · Built for freelancers worldwide</div>
+            </div>)}
+          </div>
+        )}
+
+        {/* TOOLS (simple placeholders that point to tools) */}
+        {!["dashboard","profile","settings","upgrade"].includes(appTab)&&(
+          <div style={{textAlign:"center",padding:"60px 20px"}}>
+            <div style={{fontSize:48,marginBottom:14}}>⚡</div>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:8,color:T.text}}>AI Tools Coming Here</h2>
+            <p style={{color:T.sub,fontSize:14,marginBottom:20}}>This is where the full 10-tool suite lives.<br/>It's already built in the main ClientAI app!</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:9}}>
+              {[["⚡","Strategy"],["📂","History"],["👥","Tracker"],["📱","Social"],["💰","Pricing"],["🧾","Invoice"],["📄","Proposal"],["🔔","Follow-up"],["✨","Names"],["🔍","Compete"]].map(([i,l])=>(
+                <div key={l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:11,padding:"14px 10px",cursor:"pointer"}}>
+                  <div style={{fontSize:22,marginBottom:5}}>{i}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.mid}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* UPGRADE */}
+        {appTab==="upgrade"&&(
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:18,color:T.text}}>⭐ Upgrade Your Plan</h2>
+            {[{id:"pro",name:"Pro",price:9,badge:"Most Popular",color:"#a78bfa",features:["Unlimited strategies","All 10 AI tools","24 languages","Invoice & proposals","Unlimited clients","Strategy history"]},{id:"agency",name:"Agency",price:29,badge:"Best Value",color:"#60a5fa",features:["Everything in Pro","5 team members","White-label","Priority support"]}].map(p=>(
+              card(<div key={p.id}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                  <div><div style={{fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:1,color:p.color,marginBottom:4}}>{p.badge}</div><div style={{fontWeight:800,fontSize:22,color:T.text}}>ClientAI {p.name}</div></div>
+                  <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:28,color:T.text}}>${p.price}</div><div style={{fontSize:12,color:T.sub}}>/month</div></div>
+                </div>
+                {p.features.map(f=><div key={f} style={{display:"flex",gap:7,marginBottom:6}}><span style={{color:"#34d399",fontSize:12,fontWeight:700}}>✓</span><span style={{fontSize:13,color:T.mid}}>{f}</span></div>)}
+                <button onClick={()=>{setUser(u=>({...u,plan:p.id}));setAppTab("dashboard");}} style={{marginTop:12,width:"100%",padding:"12px",borderRadius:11,border:"none",background:`linear-gradient(135deg,${p.color},${p.id==="pro"?"#60a5fa":"#34d399"})`,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>Get {p.name} Plan →</button>
+              </div>)
+            ))}
+            <p style={{textAlign:"center",fontSize:12,color:T.sub,marginTop:8}}>🔒 Secured by Stripe · PayPal · PromptPay · Cancel anytime</p>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.nav||T.card,backdropFilter:"blur(20px)",borderTop:`1px solid ${T.border}`,display:"flex",padding:"7px 4px 12px",zIndex:100}}>
+        {[{id:"dashboard",icon:"🏠",label:"Home"},{id:"generate",icon:"⚡",label:"Generate"},{id:"tracker",icon:"👥",label:"Clients"},{id:"profile",icon:"👤",label:"Profile"},{id:"upgrade",icon:"⭐",label:"Upgrade"}].map(s=>(
+          <button key={s.id} onClick={()=>setAppTab(s.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:1,padding:"5px 2px",borderRadius:9,border:"none",background:appTab===s.id?(dark?"rgba(167,139,250,0.15)":"rgba(124,58,237,0.1)"):"transparent",cursor:"pointer",color:appTab===s.id?"#a78bfa":T.sub,fontWeight:appTab===s.id?700:400,transition:"all 0.2s"}}>
+            <span style={{fontSize:17}}>{s.icon}</span><span style={{fontSize:9}}>{s.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return null;
+}

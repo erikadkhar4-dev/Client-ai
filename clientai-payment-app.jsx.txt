@@ -1,0 +1,511 @@
+import { useState, useEffect } from "react";
+
+const PLANS = [
+  {
+    id: "starter", name: "Starter", price: 0, badge: null,
+    features: ["3 strategies/month", "WhatsApp & email messages", "Client tracker (10)", "5 languages", "Dark/Light mode"],
+    color: "#6b7280", gradient: "linear-gradient(135deg,#6b7280,#9ca3af)"
+  },
+  {
+    id: "pro", name: "Pro", price: 9, badge: "Most Popular",
+    features: ["Unlimited strategies", "All 10 AI tools", "24 languages", "Invoice & proposal builder", "Unlimited client tracker", "Strategy history", "Priority AI speed"],
+    color: "#a78bfa", gradient: "linear-gradient(135deg,#a78bfa,#60a5fa)"
+  },
+  {
+    id: "agency", name: "Agency", price: 29, badge: "Best Value",
+    features: ["Everything in Pro", "5 team members", "Shared client tracker", "White-label reports", "Custom branding", "Priority support"],
+    color: "#60a5fa", gradient: "linear-gradient(135deg,#60a5fa,#34d399)"
+  }
+];
+
+const CURRENCIES = [
+  {code:"USD",symbol:"$",flag:"🇺🇸",rate:1},
+  {code:"THB",symbol:"฿",flag:"🇹🇭",rate:35},
+  {code:"EUR",symbol:"€",flag:"🇪🇺",rate:0.92},
+  {code:"GBP",symbol:"£",flag:"🇬🇧",rate:0.79},
+  {code:"INR",symbol:"₹",flag:"🇮🇳",rate:83},
+  {code:"BDT",symbol:"৳",flag:"🇧🇩",rate:110},
+  {code:"SGD",symbol:"S$",flag:"🇸🇬",rate:1.35},
+  {code:"MYR",symbol:"RM",flag:"🇲🇾",rate:4.7},
+  {code:"JPY",symbol:"¥",flag:"🇯🇵",rate:150},
+  {code:"AUD",symbol:"A$",flag:"🇦🇺",rate:1.53},
+  {code:"CAD",symbol:"C$",flag:"🇨🇦",rate:1.36},
+  {code:"IDR",symbol:"Rp",flag:"🇮🇩",rate:15800},
+];
+
+const DARK = {
+  bg:"linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+  card:"rgba(255,255,255,0.05)",border:"rgba(255,255,255,0.1)",
+  input:"rgba(255,255,255,0.07)",inputBorder:"rgba(255,255,255,0.15)",
+  text:"#fff",sub:"rgba(255,255,255,0.45)",mid:"rgba(255,255,255,0.75)",
+  surface:"rgba(255,255,255,0.03)",header:"rgba(15,12,41,0.9)",
+};
+const LIGHT = {
+  bg:"linear-gradient(135deg,#f0f4ff,#e8ecff,#f5f0ff)",
+  card:"rgba(255,255,255,0.92)",border:"rgba(167,139,250,0.2)",
+  input:"#fff",inputBorder:"rgba(167,139,250,0.3)",
+  text:"#1a1040",sub:"#6b7280",mid:"#374151",
+  surface:"rgba(167,139,250,0.04)",header:"rgba(240,244,255,0.95)",
+};
+
+const PROMPTPAY_ID = "081-234-5678";
+
+// Simulated QR grid (visual only)
+function QRGrid({ size = 140 }) {
+  const cells = 21;
+  const [grid] = useState(() => {
+    const g = [];
+    for (let r = 0; r < cells; r++) {
+      const row = [];
+      for (let c = 0; c < cells; c++) {
+        const isCorner = (r < 7 && c < 7) || (r < 7 && c >= cells-7) || (r >= cells-7 && c < 7);
+        const isInner = (r >= 2 && r <= 4 && c >= 2 && c <= 4) || (r >= 2 && r <= 4 && c >= cells-5 && c <= cells-3) || (r >= cells-5 && r <= cells-3 && c >= 2 && c <= 4);
+        row.push(isCorner || isInner || Math.random() > 0.55);
+      }
+      g.push(row);
+    }
+    return g;
+  });
+  const cell = size / cells;
+  return (
+    <div style={{background:"#fff",padding:10,borderRadius:12,display:"inline-block",boxShadow:"0 4px 20px rgba(0,0,0,0.15)"}}>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(${cells},${cell}px)`,gap:0}}>
+        {grid.map((row,r)=>row.map((on,c)=>(
+          <div key={`${r}-${c}`} style={{width:cell,height:cell,background:on?"#1a1040":"#fff"}}/>
+        )))}
+      </div>
+    </div>
+  );
+}
+
+export default function PaymentApp() {
+  const [dark, setDark] = useState(true);
+  const T = dark ? DARK : LIGHT;
+  const [currency, setCurrency] = useState(CURRENCIES[0]);
+  const [showCurrPicker, setShowCurrPicker] = useState(false);
+  const [billing, setBilling] = useState("monthly");
+  const [plan, setPlan] = useState(null);
+  const [method, setMethod] = useState(null);
+  const [screen, setScreen] = useState("plans"); // plans | checkout | processing | success
+  const [form, setForm] = useState({name:"",email:"",card:"",expiry:"",cvv:"",paypalEmail:""});
+  const [errors, setErrors] = useState({});
+  const [progress, setProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+
+  const getPrice = (p) => {
+    if (!p || p.price === 0) return 0;
+    const base = billing === "yearly" ? p.price * 10 : p.price;
+    return Math.round(base * currency.rate);
+  };
+
+  const fmt = (p) => {
+    if (!p || p.price === 0) return "Free";
+    const n = getPrice(p);
+    return `${currency.symbol}${n >= 1000 ? n.toLocaleString() : n}`;
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name) e.name = "Required";
+    if (!form.email || !form.email.includes("@")) e.email = "Valid email required";
+    if (method === "card") {
+      if (form.card.replace(/\s/g,"").length < 16) e.card = "Enter 16-digit card number";
+      if (form.expiry.length < 5) e.expiry = "Enter MM/YY";
+      if (form.cvv.length < 3) e.cvv = "Enter 3-digit CVV";
+    }
+    if (method === "paypal" && !form.paypalEmail.includes("@")) e.paypalEmail = "Valid PayPal email required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handlePay = async () => {
+    if (!validate()) return;
+    setScreen("processing");
+    setProgress(0);
+    const steps = [15, 35, 55, 75, 90, 100];
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise(r => setTimeout(r, 400));
+      setProgress(steps[i]);
+    }
+    await new Promise(r => setTimeout(r, 300));
+    setScreen("success");
+    setCountdown(5);
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) { setCountdown(null); return; }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const copy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatCard = v => v.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim().slice(0,19);
+  const formatExpiry = v => v.replace(/\D/g,"").replace(/^(.{2})(.)/,"$1/$2").slice(0,5);
+  const getCardBrand = (n) => {
+    const d = n.replace(/\s/g,"");
+    if (d.startsWith("4")) return "VISA";
+    if (d.startsWith("5")) return "MC";
+    if (d.startsWith("3")) return "AMEX";
+    return "💳";
+  };
+
+  const inp = (key, placeholder, label, transform, maxLen) => (
+    <div>
+      <label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>
+      <div style={{position:"relative"}}>
+        <input
+          value={form[key]} placeholder={placeholder}
+          maxLength={maxLen}
+          onChange={e => { setForm(f=>({...f,[key]: transform ? transform(e.target.value) : e.target.value})); setErrors(er=>({...er,[key]:""})); }}
+          style={{width:"100%",padding:"12px 14px",borderRadius:10,fontSize:14,background:T.input,border:`1.5px solid ${errors[key]?"#f87171":T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",transition:"border 0.2s",fontFamily:"inherit"}}
+        />
+        {key==="card"&&form.card.length>0&&<span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:T.sub}}>{getCardBrand(form.card)}</span>}
+      </div>
+      {errors[key]&&<div style={{fontSize:11,color:"#f87171",marginTop:3}}>⚠ {errors[key]}</div>}
+    </div>
+  );
+
+  const card = (children, extra={}) => (
+    <div style={{background:T.card,borderRadius:16,border:`1px solid ${T.border}`,padding:20,marginBottom:12,...extra}}>{children}</div>
+  );
+
+  const methodLabels = {card:"💳 Card",paypal:"🅿️ PayPal",promptpay:"🇹🇭 PromptPay",bank:"🏦 Bank"};
+
+  return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,transition:"all 0.3s"}}>
+
+      {/* Header */}
+      <div style={{background:T.header,backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.border}`,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>⚡</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:14,color:T.text}}>ClientAI Pro</div>
+            <div style={{fontSize:10,color:T.sub}}>Secure Checkout</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:7,alignItems:"center"}}>
+          {/* Currency */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setShowCurrPicker(v=>!v)} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",borderRadius:9,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13,fontWeight:600}}>
+              {currency.flag} {currency.code} <span style={{fontSize:9,opacity:0.5}}>▼</span>
+            </button>
+            {showCurrPicker&&(
+              <div style={{position:"absolute",right:0,top:"110%",background:dark?"#1e1b3a":"#fff",border:`1px solid ${T.border}`,borderRadius:12,padding:7,zIndex:200,width:175,maxHeight:250,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                {CURRENCIES.map(c=>(
+                  <button key={c.code} onClick={()=>{setCurrency(c);setShowCurrPicker(false);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:7,background:currency.code===c.code?(dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.1)"):"transparent",border:"none",color:currency.code===c.code?"#a78bfa":T.mid,cursor:"pointer",fontSize:13,fontWeight:currency.code===c.code?700:400}}>
+                    <span>{c.flag} {c.code}</span><span style={{opacity:0.6,fontSize:12}}>{c.symbol}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:9,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:14}}>{dark?"☀️":"🌙"}</button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:820,margin:"0 auto",padding:"28px 16px 60px"}}>
+
+        {/* ===== PLANS ===== */}
+        {screen==="plans"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:28}}>
+              <div style={{display:"inline-flex",alignItems:"center",gap:6,background:dark?"rgba(167,139,250,0.1)":"rgba(124,58,237,0.07)",border:`1px solid ${dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.15)"}`,borderRadius:100,padding:"4px 14px",fontSize:12,color:"#a78bfa",fontWeight:600,marginBottom:14}}>
+                🔒 Secure · SSL Encrypted · Cancel Anytime
+              </div>
+              <h1 style={{fontSize:26,fontWeight:800,margin:"0 0 8px",letterSpacing:"-0.7px",color:T.text}}>Choose your plan</h1>
+              <p style={{color:T.sub,fontSize:14,margin:"0 0 20px"}}>Start free. Upgrade when you're ready.</p>
+              {/* Billing toggle */}
+              <div style={{display:"inline-flex",background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,padding:4}}>
+                {["monthly","yearly"].map(b=>(
+                  <button key={b} onClick={()=>setBilling(b)} style={{padding:"7px 18px",borderRadius:100,border:"none",background:billing===b?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",color:billing===b?"#fff":T.sub,fontSize:13,fontWeight:700,cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>
+                    {b==="monthly"?"Monthly":"Yearly"}
+                    {b==="yearly"&&<span style={{background:"rgba(52,211,153,0.25)",color:"#34d399",borderRadius:100,padding:"1px 7px",fontSize:10,fontWeight:700}}>-17%</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:14,marginBottom:20}}>
+              {PLANS.map(p=>(
+                <div key={p.id} style={{background:T.card,borderRadius:20,border:p.id==="pro"?`2px solid rgba(167,139,250,0.6)`:`1px solid ${T.border}`,padding:24,position:"relative",transition:"all 0.25s",cursor:"pointer",boxShadow:p.id==="pro"?(dark?"0 0 32px rgba(167,139,250,0.15)":"0 4px 24px rgba(124,58,237,0.1)"):"none"}}
+                  onClick={()=>{if(p.price===0){setPlan(p);setScreen("success");}else{setPlan(p);setMethod(null);setScreen("checkout");}}}>
+                  {p.badge&&<div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",background:p.gradient,color:"#fff",fontSize:11,fontWeight:700,padding:"3px 14px",borderRadius:100,whiteSpace:"nowrap"}}>{p.badge}</div>}
+                  <div style={{fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:1.5,color:p.color,marginBottom:10}}>{p.name}</div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:2}}>
+                    <span style={{fontWeight:800,fontSize:38,color:T.text,lineHeight:1}}>{fmt(p)}</span>
+                    {p.price>0&&<span style={{fontSize:13,color:T.sub,paddingBottom:6}}>/{billing==="monthly"?"mo":"yr"}</span>}
+                  </div>
+                  {billing==="yearly"&&p.price>0&&<div style={{fontSize:12,color:"#34d399",marginBottom:10,fontWeight:600}}>Save {currency.symbol}{Math.round(p.price*2*currency.rate)}/year</div>}
+                  <div style={{height:1,background:T.border,margin:"14px 0"}}/>
+                  {p.features.map(f=>(
+                    <div key={f} style={{display:"flex",gap:8,marginBottom:8,alignItems:"flex-start"}}>
+                      <span style={{color:"#34d399",fontWeight:700,fontSize:12,flexShrink:0,marginTop:1}}>✓</span>
+                      <span style={{fontSize:13,color:T.mid,lineHeight:1.4}}>{f}</span>
+                    </div>
+                  ))}
+                  <button style={{marginTop:18,width:"100%",padding:"12px",borderRadius:12,border:p.price===0?`1px solid ${T.border}`:"none",background:p.price===0?"transparent":p.gradient,color:p.price===0?T.sub:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",transition:"all 0.2s"}}>
+                    {p.price===0?"Start Free →":p.id==="agency"?"Contact Sales →":`Get ${p.name} →`}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{textAlign:"center"}}>
+              <p style={{fontSize:12,color:T.sub,marginBottom:10}}>🔒 Payments secured by Stripe · All major cards accepted</p>
+              <div style={{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
+                {["💳 Visa","💳 Mastercard","💳 Amex","🅿️ PayPal","🇹🇭 PromptPay","🏦 Bank Transfer"].map(m=>(
+                  <span key={m} style={{fontSize:11,color:T.sub,background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,padding:"4px 10px"}}>{m}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== CHECKOUT ===== */}
+        {screen==="checkout"&&plan&&(
+          <div>
+            <button onClick={()=>setScreen("plans")} style={{marginBottom:18,padding:"7px 13px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600,display:"flex",alignItems:"center",gap:5}}>← Back to Plans</button>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+              {/* Order summary */}
+              {card(<div>
+                <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:T.sub,marginBottom:12}}>Order Summary</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div>
+                    <div style={{fontWeight:700,color:T.text}}>ClientAI {plan.name}</div>
+                    <div style={{fontSize:12,color:T.sub}}>{billing==="monthly"?"Monthly":"Yearly"} · {currency.code}</div>
+                  </div>
+                  <div style={{fontWeight:800,fontSize:22,color:T.text}}>{fmt(plan)}</div>
+                </div>
+                <div style={{height:1,background:T.border,margin:"12px 0"}}/>
+                {plan.features.slice(0,4).map(f=>(
+                  <div key={f} style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
+                    <span style={{color:"#34d399",fontSize:11}}>✓</span>
+                    <span style={{fontSize:12,color:T.sub}}>{f}</span>
+                  </div>
+                ))}
+                {billing==="yearly"&&<div style={{marginTop:10,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:8,padding:"8px 10px",fontSize:12,color:"#34d399",fontWeight:600}}>🎉 You save {currency.symbol}{Math.round(plan.price*2*currency.rate)} this year!</div>}
+              </div>)}
+
+              {/* Security badge */}
+              {card(<div style={{textAlign:"center",padding:"8px 0"}}>
+                <div style={{fontSize:32,marginBottom:8}}>🔒</div>
+                <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>Secure Payment</div>
+                <p style={{fontSize:12,color:T.sub,lineHeight:1.6}}>256-bit SSL encryption. Your payment info is never stored on our servers.</p>
+                <div style={{marginTop:12,display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}>
+                  {["PCI DSS","SSL","256-bit"].map(b=><span key={b} style={{fontSize:10,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:100,padding:"3px 8px",color:"#34d399",fontWeight:700}}>{b}</span>)}
+                </div>
+              </div>)}
+            </div>
+
+            {/* Payment method selector */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:T.sub,marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>Payment Method</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+                {[
+                  {id:"card",icon:"💳",label:"Card",sub:"Visa · MC · Amex"},
+                  {id:"paypal",icon:"🅿️",label:"PayPal",sub:"Fast & secure"},
+                  {id:"promptpay",icon:"🇹🇭",label:"PromptPay",sub:"Thailand QR"},
+                  {id:"bank",icon:"🏦",label:"Bank Transfer",sub:"Worldwide"},
+                ].map(m=>(
+                  <button key={m.id} onClick={()=>setMethod(m.id)}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:12,border:method===m.id?`2px solid #a78bfa`:`1px solid ${T.border}`,background:method===m.id?(dark?"rgba(167,139,250,0.1)":"rgba(124,58,237,0.06)"):T.card,cursor:"pointer",transition:"all 0.2s",textAlign:"left"}}>
+                    <span style={{fontSize:22}}>{m.icon}</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:T.text}}>{m.label}</div>
+                      <div style={{fontSize:11,color:T.sub}}>{m.sub}</div>
+                    </div>
+                    {method===m.id&&<div style={{marginLeft:"auto",width:18,height:18,borderRadius:"50%",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,flexShrink:0}}>✓</div>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Card form */}
+            {method==="card"&&card(
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>💳 Card Details</div>
+                <div style={{display:"flex",flexDirection:"column",gap:11}}>
+                  {inp("name","John Smith","Full Name")}
+                  {inp("email","john@email.com","Email")}
+                  {inp("card","1234 5678 9012 3456","Card Number",formatCard,19)}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {inp("expiry","MM/YY","Expiry",formatExpiry,5)}
+                    {inp("cvv","123","CVV",null,4)}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:16,padding:"10px 12px",background:T.surface,borderRadius:9,border:`1px solid ${T.border}`}}>
+                  <span>🔒</span>
+                  <span style={{fontSize:11,color:T.sub}}>Powered by Stripe. Your card details are encrypted and never stored on our servers.</span>
+                </div>
+                <button onClick={handlePay} style={{marginTop:14,width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 20px rgba(167,139,250,0.3)"}}>
+                  🔒 Pay {fmt(plan)} Now
+                </button>
+              </div>
+            )}
+
+            {/* PayPal */}
+            {method==="paypal"&&card(
+              <div style={{textAlign:"center",padding:"8px 0"}}>
+                <div style={{fontSize:44,marginBottom:10}}>🅿️</div>
+                <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:6}}>Pay with PayPal</div>
+                <p style={{fontSize:13,color:T.sub,marginBottom:16}}>You'll complete payment of <strong style={{color:T.text}}>{fmt(plan)}</strong> via PayPal.</p>
+                <div style={{marginBottom:14}}>
+                  {inp("name","Your Name","Full Name")}
+                </div>
+                <div style={{marginBottom:14}}>
+                  {inp("paypalEmail","your@paypal.com","PayPal Email")}
+                </div>
+                <button onClick={handlePay} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#0070ba",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 20px rgba(0,112,186,0.3)"}}>
+                  🅿️ Pay with PayPal — {fmt(plan)}
+                </button>
+                <p style={{fontSize:11,color:T.sub,marginTop:8}}>You'll be redirected to PayPal to complete payment securely.</p>
+              </div>
+            )}
+
+            {/* PromptPay */}
+            {method==="promptpay"&&card(
+              <div style={{textAlign:"center"}}>
+                <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:4}}>🇹🇭 PromptPay QR</div>
+                <p style={{fontSize:12,color:T.sub,marginBottom:16}}>Scan with any Thai banking app · Amount: <strong style={{color:T.text}}>฿{Math.round(plan.price*(billing==="yearly"?10:1)*35)}</strong></p>
+                <div style={{margin:"0 auto 16px",display:"flex",justifyContent:"center"}}>
+                  <QRGrid size={160}/>
+                </div>
+                <div style={{background:T.surface,borderRadius:11,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",border:`1px solid ${T.border}`}}>
+                  <div style={{textAlign:"left"}}>
+                    <div style={{fontSize:11,color:T.sub}}>PromptPay Number</div>
+                    <div style={{fontWeight:800,fontSize:18,color:T.text,letterSpacing:2}}>{PROMPTPAY_ID}</div>
+                  </div>
+                  <button onClick={()=>copy(PROMPTPAY_ID)} style={{padding:"7px 14px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,color:copied?"#34d399":"#a78bfa",fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.2s"}}>{copied?"✓ Copied!":"Copy"}</button>
+                </div>
+                <div style={{textAlign:"left",marginBottom:14}}>
+                  {["Open your banking app (KBank, SCB, Bangkok Bank...)","Tap 'QR Payment' or 'Scan'","Scan the QR code above",`Confirm amount: ฿${Math.round(plan.price*(billing==="yearly"?10:1)*35)}`,"Screenshot your receipt"].map((s,i)=>(
+                    <div key={i} style={{display:"flex",gap:9,marginBottom:8,alignItems:"flex-start"}}>
+                      <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{i+1}</div>
+                      <span style={{fontSize:13,color:T.mid,paddingTop:1}}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginBottom:12}}>{inp("email","your@email.com","Your Email (to activate plan)")}</div>
+                <button onClick={handlePay} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#34d399,#059669)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  ✅ I've Sent the Payment
+                </button>
+              </div>
+            )}
+
+            {/* Bank transfer */}
+            {method==="bank"&&card(
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>🏦 Bank Transfer</div>
+                {[
+                  ["Bank","Bangkok Bank / Kasikorn (KBank)"],
+                  ["Account Name","ClientAI Pro Co., Ltd."],
+                  ["Account Number","123-4-56789-0"],
+                  ["Amount",`${fmt(plan)} (${currency.code})`],
+                  ["Reference","Your email address"],
+                ].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
+                    <span style={{fontSize:13,color:T.sub,flexShrink:0}}>{l}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:13,fontWeight:700,color:T.text,textAlign:"right"}}>{v}</span>
+                      <button onClick={()=>copy(v)} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.surface,color:"#a78bfa",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>Copy</button>
+                    </div>
+                  </div>
+                ))}
+                <div style={{marginTop:14,marginBottom:12}}>{inp("email","your@email.com","Your Email (for confirmation)")}</div>
+                <button onClick={handlePay} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  ✅ I've Made the Transfer
+                </button>
+              </div>
+            )}
+
+            {!method&&<div style={{textAlign:"center",padding:"20px",color:T.sub,fontSize:14}}>👆 Select a payment method above</div>}
+          </div>
+        )}
+
+        {/* ===== PROCESSING ===== */}
+        {screen==="processing"&&(
+          <div style={{textAlign:"center",padding:"80px 20px"}}>
+            <div style={{fontSize:48,marginBottom:20}}>
+              {progress < 100 ? "⚡" : "🎉"}
+            </div>
+            <h2 style={{fontSize:22,fontWeight:800,marginBottom:8,color:T.text}}>
+              {progress < 100 ? "Processing your payment..." : "Almost done!"}
+            </h2>
+            <p style={{color:T.sub,fontSize:14,marginBottom:32}}>
+              {method==="card"?"Verifying card details...":method==="paypal"?"Connecting to PayPal...":method==="promptpay"?"Verifying PromptPay transfer...":"Confirming bank transfer..."}
+            </p>
+            <div style={{maxWidth:300,margin:"0 auto"}}>
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,height:8,overflow:"hidden",marginBottom:16}}>
+                <div style={{height:"100%",width:`${progress}%`,background:"linear-gradient(90deg,#a78bfa,#60a5fa)",borderRadius:100,transition:"width 0.4s ease"}}/>
+              </div>
+              <div style={{fontSize:13,color:T.sub}}>{progress}% complete</div>
+            </div>
+            <div style={{marginTop:32,display:"flex",flexDirection:"column",gap:8,maxWidth:280,margin:"32px auto 0"}}>
+              {[
+                {label:"Securing connection",done:progress>=15},
+                {label:"Verifying payment",done:progress>=55},
+                {label:"Activating plan",done:progress>=90},
+                {label:"Sending confirmation",done:progress>=100},
+              ].map(s=>(
+                <div key={s.label} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:s.done?"linear-gradient(135deg,#34d399,#059669)":T.surface,border:`1px solid ${s.done?"#34d399":T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",transition:"all 0.3s",flexShrink:0}}>{s.done?"✓":""}</div>
+                  <span style={{fontSize:13,color:s.done?T.text:T.sub,transition:"color 0.3s"}}>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== SUCCESS ===== */}
+        {screen==="success"&&(
+          <div style={{textAlign:"center",padding:"40px 20px"}}>
+            <div style={{fontSize:64,marginBottom:16,animation:"bounce 0.5s ease"}}>🎉</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:100,padding:"5px 14px",fontSize:12,color:"#34d399",fontWeight:700,marginBottom:16}}>
+              ✓ Payment Confirmed
+            </div>
+            <h1 style={{fontSize:26,fontWeight:800,margin:"0 0 8px",color:T.text}}>
+              {plan?.price===0?"Welcome to ClientAI!":"You're all set!"}
+            </h1>
+            <p style={{fontSize:15,color:T.sub,marginBottom:6}}>
+              {plan?.price===0?"Your free plan is active and ready to use.":
+               `ClientAI ${plan?.name} is now active on your account.`}
+            </p>
+            {form.email&&<p style={{fontSize:13,color:T.sub,marginBottom:28}}>Confirmation sent to <strong style={{color:T.text}}>{form.email}</strong></p>}
+
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>🚀 Your plan includes:</div>
+              {plan?.features.map(f=>(
+                <div key={f} style={{display:"flex",gap:9,marginBottom:8,alignItems:"center"}}>
+                  <span style={{color:"#34d399",fontWeight:700,fontSize:13}}>✓</span>
+                  <span style={{fontSize:14,color:T.mid}}>{f}</span>
+                </div>
+              ))}
+            </div>,{maxWidth:400,margin:"0 auto 20px"})}
+
+            <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={()=>{setScreen("plans");setPlan(null);setMethod(null);setForm({name:"",email:"",card:"",expiry:"",cvv:"",paypalEmail:""});setErrors({});}}
+                style={{padding:"11px 22px",borderRadius:11,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                ← View Plans
+              </button>
+              <button style={{padding:"11px 22px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",boxShadow:"0 4px 20px rgba(167,139,250,0.3)"}}>
+                ⚡ Open ClientAI Pro →
+              </button>
+            </div>
+
+            {countdown!==null&&countdown>0&&(
+              <p style={{marginTop:16,fontSize:12,color:T.sub}}>Auto-redirecting in {countdown}s...</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

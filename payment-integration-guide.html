@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ClientAI — Payment Integration Guide</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0814;color:#f0eeff;font-family:'Inter',sans-serif;line-height:1.6;padding:0}
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+  .container{max-width:860px;margin:0 auto;padding:40px 20px}
+  h1{font-size:32px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  h2{font-size:22px;font-weight:700;margin:40px 0 14px;color:#f0eeff}
+  h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#a78bfa}
+  p{font-size:14px;color:rgba(240,238,255,0.75);margin-bottom:12px;line-height:1.7}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:100px;padding:4px 12px;font-size:12px;color:#a78bfa;font-weight:600;margin-bottom:24px}
+  .card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card.stripe{border-color:rgba(99,102,241,0.3)}
+  .card.paypal{border-color:rgba(0,112,186,0.3)}
+  .card.promptpay{border-color:rgba(52,211,153,0.3)}
+  .step-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .step-icon{font-size:24px}
+  .step-title{font-size:18px;font-weight:700;color:#f0eeff}
+  .step-sub{font-size:12px;color:rgba(240,238,255,0.45)}
+  pre{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;overflow-x:auto;margin:10px 0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;color:#e2e8f0}
+  .kw{color:#c084fc}
+  .str{color:#86efac}
+  .fn{color:#60a5fa}
+  .cm{color:#64748b}
+  .num{color:#fbbf24}
+  code{background:rgba(167,139,250,0.15);border-radius:5px;padding:2px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#c084fc}
+  .steps-list{counter-reset:step}
+  .step-item{counter-increment:step;display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+  .step-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:1px}
+  .step-text{font-size:14px;color:rgba(240,238,255,0.75);line-height:1.6}
+  .step-text strong{color:#f0eeff}
+  .tip{background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;color:rgba(52,211,153,0.9)}
+  .warn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;color:rgba(251,191,36,0.9)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .tag{display:inline-block;background:rgba(167,139,250,0.15);border-radius:6px;padding:2px 8px;font-size:11px;color:#a78bfa;font-weight:600;margin-right:4px}
+  .divider{border:none;border-top:1px solid rgba(255,255,255,0.08);margin:32px 0}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="badge">⚡ ClientAI Pro — Payment Integration Guide</div>
+<h1>Stripe + PayPal + PromptPay</h1>
+<p>Complete step-by-step guide to accept real payments for ClientAI Pro. Follow each section in order.</p>
+
+<div class="warn">⚠️ Never put secret API keys in frontend code. Always use a backend server to handle payments securely.</div>
+
+<!-- ==================== OVERVIEW ==================== -->
+<h2>📋 What You Need</h2>
+<div class="grid2">
+  <div class="card"><h3>Accounts to create</h3>
+    <div class="step-item"><div class="step-num">1</div><div class="step-text"><strong>Stripe account</strong> — stripe.com (works worldwide)</div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-text"><strong>PayPal Business</strong> — paypal.com/business</div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-text"><strong>Thai bank account</strong> — for PromptPay (Bangkok Bank, Kasikorn, etc.)</div></div>
+    <div class="step-item"><div class="step-num">4</div><div class="step-text"><strong>Node.js server</strong> — Vercel, Railway, or Render (free)</div></div>
+  </div>
+  <div class="card"><h3>Tech stack</h3>
+    <div class="step-item"><div class="step-num">→</div><div class="step-text"><strong>Frontend:</strong> React (your ClientAI app)</div></div>
+    <div class="step-item"><div class="step-num">→</div><div class="step-text"><strong>Backend:</strong> Node.js + Express</div></div>
+    <div class="step-item"><div class="step-num">→</div><div class="step-text"><strong>Stripe SDK:</strong> @stripe/stripe-js + stripe (npm)</div></div>
+    <div class="step-item"><div class="step-num">→</div><div class="step-text"><strong>PayPal SDK:</strong> @paypal/react-paypal-js</div></div>
+    <div class="step-item"><div class="step-num">→</div><div class="step-text"><strong>PromptPay:</strong> promptpay-qr (npm)</div></div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ==================== STRIPE ==================== -->
+<h2>💳 1. Stripe Integration</h2>
+<div class="card stripe">
+  <div class="step-header"><div class="step-icon">💳</div><div><div class="step-title">Stripe</div><div class="step-sub">Accept Visa, Mastercard, Amex — 135+ currencies</div></div></div>
+
+  <h3>Step 1 — Install packages</h3>
+  <pre><span class="cm"># In your project folder</span>
+npm install @stripe/stripe-js @stripe/react-stripe-js
+npm install stripe <span class="cm"># backend only</span></pre>
+
+  <h3>Step 2 — Backend: Create payment intent (server.js)</h3>
+  <pre><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
+<span class="kw">const</span> stripe = <span class="fn">require</span>(<span class="str">'stripe'</span>)(<span class="str">'sk_live_YOUR_SECRET_KEY'</span>); <span class="cm">// Keep secret!</span>
+<span class="kw">const</span> app = <span class="fn">express</span>();
+app.<span class="fn">use</span>(express.<span class="fn">json</span>());
+
+app.<span class="fn">post</span>(<span class="str">'/create-payment-intent'</span>, <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> { amount, currency, plan } = req.body;
+  <span class="kw">const</span> paymentIntent = <span class="kw">await</span> stripe.paymentIntents.<span class="fn">create</span>({
+    amount: amount * <span class="num">100</span>, <span class="cm">// Stripe uses cents</span>
+    currency: currency.toLowerCase(), <span class="cm">// 'usd', 'thb', etc.</span>
+    metadata: { plan }
+  });
+  res.<span class="fn">json</span>({ clientSecret: paymentIntent.client_secret });
+});
+
+app.<span class="fn">listen</span>(<span class="num">3001</span>);</pre>
+
+  <h3>Step 3 — Frontend: Stripe Elements (React)</h3>
+  <pre><span class="kw">import</span> { loadStripe } <span class="kw">from</span> <span class="str">'@stripe/stripe-js'</span>;
+<span class="kw">import</span> { Elements, CardElement, useStripe, useElements } <span class="kw">from</span> <span class="str">'@stripe/react-stripe-js'</span>;
+
+<span class="kw">const</span> stripePromise = <span class="fn">loadStripe</span>(<span class="str">'pk_live_YOUR_PUBLISHABLE_KEY'</span>);
+
+<span class="kw">function</span> <span class="fn">CheckoutForm</span>({ amount, currency, plan }) {
+  <span class="kw">const</span> stripe = <span class="fn">useStripe</span>();
+  <span class="kw">const</span> elements = <span class="fn">useElements</span>();
+
+  <span class="kw">const</span> handleSubmit = <span class="kw">async</span> (e) => {
+    e.<span class="fn">preventDefault</span>();
+    <span class="cm">// 1. Get client secret from your backend</span>
+    <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/create-payment-intent'</span>, {
+      method: <span class="str">'POST'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: <span class="fn">JSON.stringify</span>({ amount, currency, plan })
+    });
+    <span class="kw">const</span> { clientSecret } = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+    <span class="cm">// 2. Confirm payment</span>
+    <span class="kw">const</span> { error } = <span class="kw">await</span> stripe.<span class="fn">confirmCardPayment</span>(clientSecret, {
+      payment_method: { card: elements.<span class="fn">getElement</span>(CardElement) }
+    });
+
+    <span class="kw">if</span> (!error) <span class="fn">alert</span>(<span class="str">'Payment successful! 🎉'</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;CardElement /&gt;
+      &lt;button type=<span class="str">"submit"</span>&gt;Pay {currency} {amount}&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+<span class="cm">// Wrap your app:</span>
+<span class="kw">function</span> <span class="fn">StripePayment</span>({ amount, currency, plan }) {
+  <span class="kw">return</span> (
+    &lt;Elements stripe={stripePromise}&gt;
+      &lt;CheckoutForm amount={amount} currency={currency} plan={plan} /&gt;
+    &lt;/Elements&gt;
+  );
+}</pre>
+
+  <div class="tip">✅ Get your Stripe keys at: <strong>dashboard.stripe.com → Developers → API Keys</strong><br/>Use <code>pk_test_</code> and <code>sk_test_</code> for testing first!</div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ==================== PAYPAL ==================== -->
+<h2>🅿️ 2. PayPal Integration</h2>
+<div class="card paypal">
+  <div class="step-header"><div class="step-icon">🅿️</div><div><div class="step-title">PayPal</div><div class="step-sub">Accept PayPal balance, cards, and bank accounts</div></div></div>
+
+  <h3>Step 1 — Install</h3>
+  <pre>npm install @paypal/react-paypal-js</pre>
+
+  <h3>Step 2 — Get Client ID</h3>
+  <div class="steps-list">
+    <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <strong>developer.paypal.com</strong></div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-text">Create an app → get <strong>Client ID</strong></div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-text">Use Sandbox Client ID for testing, Live for real payments</div></div>
+  </div>
+
+  <h3>Step 3 — React Component</h3>
+  <pre><span class="kw">import</span> { PayPalScriptProvider, PayPalButtons } <span class="kw">from</span> <span class="str">'@paypal/react-paypal-js'</span>;
+
+<span class="kw">function</span> <span class="fn">PayPalPayment</span>({ amount, currency, plan, onSuccess }) {
+  <span class="kw">return</span> (
+    &lt;PayPalScriptProvider options={{
+      <span class="str">"client-id"</span>: <span class="str">"YOUR_PAYPAL_CLIENT_ID"</span>,
+      currency: currency <span class="cm">// "USD", "THB", etc.</span>
+    }}&gt;
+      &lt;PayPalButtons
+        createOrder={(data, actions) => {
+          <span class="kw">return</span> actions.order.<span class="fn">create</span>({
+            purchase_units: [{
+              amount: { value: amount.toString(), currency_code: currency },
+              description: <span class="str">`ClientAI Pro - ${plan} Plan`</span>
+            }]
+          });
+        }}
+        onApprove={(data, actions) => {
+          <span class="kw">return</span> actions.order.<span class="fn">capture</span>().<span class="fn">then</span>(details => {
+            <span class="fn">onSuccess</span>(details);
+          });
+        }}
+        onError={(err) => <span class="fn">console</span>.<span class="fn">error</span>(err)}
+        style={{ layout: <span class="str">'vertical'</span>, color: <span class="str">'blue'</span>, shape: <span class="str">'pill'</span> }}
+      /&gt;
+    &lt;/PayPalScriptProvider&gt;
+  );
+}</pre>
+
+  <div class="tip">✅ PayPal supports: USD, THB, EUR, GBP, SGD, AUD, JPY, and 20+ more currencies</div>
+  <div class="warn">⚠️ For subscriptions (monthly/yearly), use PayPal Subscriptions API instead of one-time payments</div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ==================== PROMPTPAY ==================== -->
+<h2>🇹🇭 3. PromptPay QR Generator</h2>
+<div class="card promptpay">
+  <div class="step-header"><div class="step-icon">🇹🇭</div><div><div class="step-title">PromptPay</div><div class="step-sub">Thai QR payment — works with all Thai banking apps</div></div></div>
+
+  <h3>Step 1 — Install</h3>
+  <pre>npm install promptpay-qr qrcode.react</pre>
+
+  <h3>Step 2 — Generate QR Code (React)</h3>
+  <pre><span class="kw">import</span> generatePayload <span class="kw">from</span> <span class="str">'promptpay-qr'</span>;
+<span class="kw">import</span> { QRCodeSVG } <span class="kw">from</span> <span class="str">'qrcode.react'</span>;
+
+<span class="kw">function</span> <span class="fn">PromptPayQR</span>({ amount, mobileNumber }) {
+  <span class="cm">// mobileNumber = '0812345678' (your PromptPay number)</span>
+  <span class="kw">const</span> payload = <span class="fn">generatePayload</span>(mobileNumber, { amount });
+
+  <span class="kw">return</span> (
+    &lt;div style={{ textAlign: <span class="str">'center'</span> }}&gt;
+      &lt;QRCodeSVG
+        value={payload}
+        size={<span class="num">200</span>}
+        bgColor=<span class="str">"#ffffff"</span>
+        fgColor=<span class="str">"#1a1040"</span>
+        level=<span class="str">"M"</span>
+      /&gt;
+      &lt;p&gt;Scan to pay ฿{amount}&lt;/p&gt;
+      &lt;p&gt;PromptPay: {mobileNumber}&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}
+
+<span class="cm">// Usage:</span>
+&lt;PromptPayQR amount={<span class="num">315</span>} mobileNumber=<span class="str">"0812345678"</span> /&gt;</pre>
+
+  <h3>Step 3 — Verify payment (webhook)</h3>
+  <p>PromptPay doesn't have an automatic webhook. Two options:</p>
+  <div class="step-item"><div class="step-num">A</div><div class="step-text"><strong>Manual:</strong> Customer sends you a screenshot. You activate their account manually. Good for starting out.</div></div>
+  <div class="step-item"><div class="step-num">B</div><div class="step-text"><strong>Automatic:</strong> Use <strong>Kasikorn (KBank) Payment Gateway</strong> or <strong>Omise</strong> — they support PromptPay with webhooks.</div></div>
+
+  <pre><span class="cm">// Omise (supports PromptPay + auto-verification)</span>
+npm install omise
+
+<span class="cm">// Backend webhook endpoint:</span>
+app.<span class="fn">post</span>(<span class="str">'/omise-webhook'</span>, (req, res) => {
+  <span class="kw">const</span> event = req.body;
+  <span class="kw">if</span> (event.key === <span class="str">'charge.complete'</span>) {
+    <span class="cm">// Activate user's plan here</span>
+    <span class="fn">activateUserPlan</span>(event.data.metadata.email);
+  }
+  res.<span class="fn">sendStatus</span>(<span class="num">200</span>);
+});</pre>
+
+  <div class="tip">✅ <strong>Recommended for Thailand:</strong> Use <strong>Omise.co</strong> — supports PromptPay, credit cards, and has automatic webhooks. Sign up at omise.co</div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ==================== DEPLOY ==================== -->
+<h2>🚀 4. Deploy Your Backend (Free)</h2>
+<div class="grid2">
+  <div class="card">
+    <h3>Option A — Vercel (Easiest)</h3>
+    <div class="steps-list">
+      <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <strong>vercel.com</strong> → sign up free</div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-text">Push your code to GitHub</div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-text">Connect repo to Vercel</div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-text">Add environment variables (API keys)</div></div>
+      <div class="step-item"><div class="step-num">5</div><div class="step-text">Deploy! Your API is live</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Option B — Railway (Simple)</h3>
+    <div class="steps-list">
+      <div class="step-item"><div class="step-num">1</div><div class="step-text">Go to <strong>railway.app</strong> → sign up free</div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-text">New Project → Deploy from GitHub</div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-text">Add environment variables</div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-text">Done — $5 free credits/month</div></div>
+    </div>
+  </div>
+</div>
+
+<h3>Environment Variables (.env)</h3>
+<pre><span class="cm"># Stripe</span>
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxx
+STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx
+
+<span class="cm"># PayPal</span>
+PAYPAL_CLIENT_ID=xxxxxxxxxxxxxxxx
+PAYPAL_CLIENT_SECRET=xxxxxxxxxxxxxxxx
+
+<span class="cm"># PromptPay / Omise</span>
+OMISE_SECRET_KEY=skey_xxxxxxxxxxxx
+PROMPTPAY_NUMBER=0812345678</pre>
+
+<hr class="divider"/>
+
+<!-- ==================== SUBSCRIPTIONS ==================== -->
+<h2>🔄 5. Recurring Subscriptions</h2>
+<div class="card">
+  <p>For monthly/yearly billing, use <strong>Stripe Subscriptions</strong> — the easiest way to bill automatically.</p>
+  <pre><span class="cm">// Backend: Create subscription</span>
+app.<span class="fn">post</span>(<span class="str">'/create-subscription'</span>, <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> { email, priceId } = req.body;
+  <span class="cm">// priceId comes from your Stripe dashboard</span>
+  <span class="cm">// e.g. price_1234 = Pro Monthly $9</span>
+
+  <span class="kw">const</span> customer = <span class="kw">await</span> stripe.customers.<span class="fn">create</span>({ email });
+  <span class="kw">const</span> subscription = <span class="kw">await</span> stripe.subscriptions.<span class="fn">create</span>({
+    customer: customer.id,
+    items: [{ price: priceId }],
+    payment_behavior: <span class="str">'default_incomplete'</span>,
+    expand: [<span class="str">'latest_invoice.payment_intent'</span>]
+  });
+
+  res.<span class="fn">json</span>({
+    clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+    subscriptionId: subscription.id
+  });
+});</pre>
+  <div class="tip">✅ Create Price IDs in <strong>Stripe Dashboard → Products → Add Product</strong><br/>Set recurring price: $9/month for Pro, $29/month for Agency</div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ==================== CHECKLIST ==================== -->
+<h2>✅ Launch Checklist</h2>
+<div class="card">
+  <div class="step-item"><div class="step-num">1</div><div class="step-text">Create Stripe account + add bank details to receive payouts</div></div>
+  <div class="step-item"><div class="step-num">2</div><div class="step-text">Create PayPal Business account + verify identity</div></div>
+  <div class="step-item"><div class="step-num">3</div><div class="step-text">Register PromptPay with your Thai bank account</div></div>
+  <div class="step-item"><div class="step-num">4</div><div class="step-text">Test all payments with test/sandbox mode first</div></div>
+  <div class="step-item"><div class="step-num">5</div><div class="step-text">Deploy backend to Vercel or Railway</div></div>
+  <div class="step-item"><div class="step-num">6</div><div class="step-text">Switch to live API keys when ready</div></div>
+  <div class="step-item"><div class="step-num">7</div><div class="step-text">Add Terms of Service + Refund Policy page to your landing page</div></div>
+  <div class="step-item"><div class="step-num">8</div><div class="step-text">Set up email confirmation with SendGrid or Resend (free)</div></div>
+</div>
+
+<div style="text-align:center;padding:40px 0 20px">
+  <div style="font-size:13px;color:rgba(240,238,255,0.35)">ClientAI Pro — Payment Integration Guide · Generated by ClientAI</div>
+</div>
+
+</div>
+</body>
+</html>

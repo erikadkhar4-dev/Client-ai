@@ -1,0 +1,561 @@
+import { useState, useEffect } from "react";
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const LANGUAGES = [
+  {code:"English",flag:"🇬🇧",label:"English"},{code:"Thai",flag:"🇹🇭",label:"ภาษาไทย"},
+  {code:"Hindi",flag:"🇮🇳",label:"हिन्दी"},{code:"Bengali",flag:"🇧🇩",label:"বাংলা"},
+  {code:"Spanish",flag:"🇪🇸",label:"Español"},{code:"French",flag:"🇫🇷",label:"Français"},
+  {code:"Arabic",flag:"🇸🇦",label:"العربية"},{code:"Portuguese",flag:"🇧🇷",label:"Português"},
+  {code:"Indonesian",flag:"🇮🇩",label:"Bahasa"},{code:"Japanese",flag:"🇯🇵",label:"日本語"},
+  {code:"Korean",flag:"🇰🇷",label:"한국어"},{code:"Chinese",flag:"🇨🇳",label:"中文"},
+  {code:"Russian",flag:"🇷🇺",label:"Русский"},{code:"German",flag:"🇩🇪",label:"Deutsch"},
+  {code:"Vietnamese",flag:"🇻🇳",label:"Tiếng Việt"},{code:"Malay",flag:"🇲🇾",label:"Bahasa Melayu"},
+  {code:"Urdu",flag:"🇵🇰",label:"اردو"},{code:"Tagalog",flag:"🇵🇭",label:"Filipino"},
+  {code:"Italian",flag:"🇮🇹",label:"Italiano"},{code:"Turkish",flag:"🇹🇷",label:"Türkçe"},
+  {code:"Dutch",flag:"🇳🇱",label:"Nederlands"},{code:"Polish",flag:"🇵🇱",label:"Polski"},
+  {code:"Swahili",flag:"🇰🇪",label:"Kiswahili"},{code:"Greek",flag:"🇬🇷",label:"Ελληνικά"},
+];
+
+const CURRENCIES = [
+  {code:"USD",symbol:"$",flag:"🇺🇸",rate:1},{code:"THB",symbol:"฿",flag:"🇹🇭",rate:35},
+  {code:"EUR",symbol:"€",flag:"🇪🇺",rate:0.92},{code:"GBP",symbol:"£",flag:"🇬🇧",rate:0.79},
+  {code:"INR",symbol:"₹",flag:"🇮🇳",rate:83},{code:"BDT",symbol:"৳",flag:"🇧🇩",rate:110},
+  {code:"SGD",symbol:"S$",flag:"🇸🇬",rate:1.35},{code:"MYR",symbol:"RM",flag:"🇲🇾",rate:4.7},
+  {code:"JPY",symbol:"¥",flag:"🇯🇵",rate:150},{code:"AUD",symbol:"A$",flag:"🇦🇺",rate:1.53},
+];
+
+const PLANS = [
+  {id:"free",name:"Free",price:0,color:"#6b7280",features:["3 strategies/month","WhatsApp & email messages","Client tracker (10)","5 languages"]},
+  {id:"pro",name:"Pro",price:9,color:"#a78bfa",badge:"Popular",features:["Unlimited strategies","All 10 AI tools","24 languages","Invoice & proposals","Unlimited clients","Strategy history"]},
+  {id:"agency",name:"Agency",price:29,color:"#60a5fa",features:["Everything in Pro","5 team members","White-label","Priority support"]},
+];
+
+const industries = ["Restaurant / Food","Retail / Shop","Beauty / Salon","Fitness / Gym","Real Estate","Coaching / Consulting","Tech / SaaS","Healthcare","Education","Creative / Agency","Other"];
+const services = ["Website Design","Social Media Management","SEO","Logo & Branding","Video / Reels","Photography","Copywriting","Ads / Marketing","App Development","E-commerce Setup"];
+const statusColors = {"Not Contacted":"#6b7280","Contacted":"#2563eb","Interested":"#d97706","Proposal Sent":"#7c3aed","Won ✅":"#16a34a","Lost ❌":"#dc2626"};
+
+const DARK = {bg:"linear-gradient(135deg,#0f0c29,#302b63,#24243e)",card:"rgba(255,255,255,0.05)",border:"rgba(255,255,255,0.1)",input:"rgba(255,255,255,0.07)",inputBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.45)",mid:"rgba(255,255,255,0.75)",surface:"rgba(255,255,255,0.03)",nav:"rgba(15,12,41,0.96)",drop:"#1e1b3a"};
+const LIGHT = {bg:"linear-gradient(135deg,#f0f4ff,#e8ecff,#f5f0ff)",card:"rgba(255,255,255,0.92)",border:"rgba(167,139,250,0.2)",input:"#fff",inputBorder:"rgba(167,139,250,0.3)",text:"#1a1040",sub:"#6b7280",mid:"#374151",surface:"rgba(167,139,250,0.04)",nav:"rgba(240,244,255,0.97)",drop:"#fff"};
+
+const TOOLS = [
+  {id:"generate",icon:"⚡",label:"Generate"},{id:"history",icon:"📂",label:"History"},
+  {id:"tracker",icon:"👥",label:"Tracker"},{id:"social",icon:"📱",label:"Social"},
+  {id:"pricing",icon:"💰",label:"Pricing"},{id:"invoice",icon:"🧾",label:"Invoice"},
+  {id:"proposal",icon:"📄",label:"Proposal"},{id:"followup",icon:"🔔",label:"Follow-up"},
+  {id:"naming",icon:"✨",label:"Names"},{id:"competitor",icon:"🔍",label:"Compete"},
+];
+
+// ============================================================
+// QR VISUAL
+// ============================================================
+function QRVisual({size=150}) {
+  const cells=21;
+  const [grid]=useState(()=>{
+    const g=[];
+    for(let r=0;r<cells;r++){const row=[];for(let c=0;c<cells;c++){const corner=(r<7&&c<7)||(r<7&&c>=cells-7)||(r>=cells-7&&c<7);const inner=(r>=2&&r<=4&&c>=2&&c<=4)||(r>=2&&r<=4&&c>=cells-5&&c<=cells-3)||(r>=cells-5&&r<=cells-3&&c>=2&&c<=4);row.push(corner||inner||Math.random()>0.55);}g.push(row);}return g;
+  });
+  const cell=size/cells;
+  return <div style={{background:"#fff",padding:8,borderRadius:10,display:"inline-block"}}><div style={{display:"grid",gridTemplateColumns:`repeat(${cells},${cell}px)`}}>{grid.map((row,r)=>row.map((on,c)=><div key={`${r}-${c}`} style={{width:cell,height:cell,background:on?"#1a1040":"#fff"}}/>))}</div></div>;
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+export default function ClientAIPro() {
+  const [dark,setDark]=useState(true);
+  const T=dark?DARK:LIGHT;
+  // App state
+  const [appView,setAppView]=useState("landing"); // landing | app | upgrade
+  const [userPlan,setUserPlan]=useState("free");
+  const [screen,setScreen]=useState("generate");
+  const [showNav,setShowNav]=useState(false);
+  const [language,setLanguage]=useState("English");
+  const [showLang,setShowLang]=useState(false);
+  const [currency,setCurrency]=useState(CURRENCIES[0]);
+  const [showCurr,setShowCurr]=useState(false);
+  // Generate
+  const [step,setStep]=useState(0);
+  const [form,setForm]=useState({name:"",company:"",phone:"",email:"",industry:"",budget:"",offering:[],notWanting:[],targetLocation:"",targetIndustry:"",goal:""});
+  const [result,setResult]=useState(null);
+  const [parsed,setParsed]=useState({whatsapp:[],emails:[]});
+  const [loading,setLoading]=useState(false);
+  const [activeTab,setActiveTab]=useState("strategy");
+  const [history,setHistory]=useState([]);
+  const [viewHist,setViewHist]=useState(null);
+  // Tracker
+  const [clients,setClients]=useState([]);
+  const [newClient,setNewClient]=useState({name:"",company:"",contact:"",status:"Not Contacted",notes:""});
+  const [showAddClient,setShowAddClient]=useState(false);
+  // Social
+  const [socialForm,setSocialForm]=useState({business:"",niche:"",platform:"Instagram",goal:"Get more clients",tone:"Professional"});
+  const [socialResult,setSocialResult]=useState(null);
+  const [socialLoading,setSocialLoading]=useState(false);
+  // Pricing
+  const [pricingForm,setPricingForm]=useState({service:"Website Design",hours:"10",experience:"Beginner",location:"Thailand",projectType:"One-time"});
+  const [pricingResult,setPricingResult]=useState(null);
+  const [pricingLoading,setPricingLoading]=useState(false);
+  // Invoice
+  const [invoiceForm,setInvoiceForm]=useState({yourName:"",yourEmail:"",clientName:"",clientEmail:"",service:"",amount:"",currency:"USD",dueDate:"",notes:""});
+  const [invoiceResult,setInvoiceResult]=useState(null);
+  const [invoiceLoading,setInvoiceLoading]=useState(false);
+  // Proposal
+  const [propForm,setPropForm]=useState({yourName:"",company:"",clientName:"",clientBusiness:"",service:"",budget:"",timeline:"",problem:""});
+  const [propResult,setPropResult]=useState(null);
+  const [propLoading,setPropLoading]=useState(false);
+  // Followup
+  const [followups,setFollowups]=useState([]);
+  const [newFu,setNewFu]=useState({clientName:"",company:"",contact:"",lastContacted:"",followupDate:"",reason:"Follow up on proposal",notes:""});
+  const [showAddFu,setShowAddFu]=useState(false);
+  const [fuMsg,setFuMsg]=useState(null);
+  const [fuLoading,setFuLoading]=useState(false);
+  const [selFu,setSelFu]=useState(null);
+  // Naming
+  const [namingForm,setNamingForm]=useState({industry:"",style:"Modern",keywords:"",location:""});
+  const [namingResult,setNamingResult]=useState(null);
+  const [namingLoading,setNamingLoading]=useState(false);
+  // Competitor
+  const [compForm,setCompForm]=useState({yourService:"",yourLocation:"",competitor:""});
+  const [compResult,setCompResult]=useState(null);
+  const [compLoading,setCompLoading]=useState(false);
+  // Payment
+  const [payPlan,setPayPlan]=useState(null);
+  const [payMethod,setPayMethod]=useState(null);
+  const [payScreen,setPayScreen]=useState("plans");
+  const [billing,setBilling]=useState("monthly");
+  const [payForm,setPayForm]=useState({name:"",email:"",card:"",expiry:"",cvv:"",paypalEmail:""});
+  const [payErrors,setPayErrors]=useState({});
+  const [payProgress,setPayProgress]=useState(0);
+  const [copied,setCopied]=useState(null);
+
+  const selectedLang=LANGUAGES.find(l=>l.code===language)||LANGUAGES[0];
+  const toggle=(field,val)=>setForm(f=>({...f,[field]:f[field].includes(val)?f[field].filter(x=>x!==val):[...f[field],val]}));
+
+  const parseResult=(text)=>{
+    const lines=text.split("\n");const whatsapp=[],emails=[];let mode=null,current=null;
+    for(const raw of lines){const line=raw.replace(/\*\*/g,"").trim();if(!line)continue;
+      if(/whatsapp|outreach message|message [abc]|top 3/i.test(line)){mode="whatsapp";continue;}
+      if(/email template|email subject/i.test(line)){mode="email";continue;}
+      if(mode==="whatsapp"){if(/^message [abc]/i.test(line)){if(current)whatsapp.push(current);current={label:line,body:[]};}else if(current)current.body.push(line);else whatsapp.push({label:"Message",body:[line]});}
+      else if(mode==="email"){if(/^subject:/i.test(line)){if(current)emails.push(current);current={subject:line.replace(/^subject:\s*/i,""),body:[]};}else if(current)current.body.push(line);}
+    }
+    if(current&&mode==="whatsapp")whatsapp.push(current);if(current&&mode==="email")emails.push(current);return{whatsapp,emails};
+  };
+
+  const aiCall=async(prompt,max=1200)=>{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:max,messages:[{role:"user",content:prompt}]})});
+    const data=await res.json();return data.content?.map(b=>b.text||"").join("\n")||"No response.";
+  };
+
+  const generateStrategy=async()=>{
+    setLoading(true);setStep(2);
+    try{
+      const text=await aiCall(`Business development strategist. Profile: NAME:${form.name} COMPANY:${form.company} PHONE:${form.phone} EMAIL:${form.email||"N/A"} INDUSTRY:${form.industry} BUDGET:${form.budget||"N/A"} OFFERED:${form.offering.join(",")} NOT:${form.notWanting.join(",")} TARGET LOCATION:${form.targetLocation} TARGET INDUSTRY:${form.targetIndustry} GOAL:${form.goal}
+Respond ENTIRELY in ${language}.
+1. IDEAL CLIENT PROFILE - 3 sentences.
+2. TOP 3 OUTREACH MESSAGES - Label: Message A: / Message B: / Message C: under 60 words each.
+3. EMAIL TEMPLATES - 2 templates. Start: Subject: then body under 100 words.
+4. BEST PLATFORMS - 4 platforms, one-line tip.
+5. WEEKLY ACTION PLAN - Mon-Fri one task.
+6. POWER TIP - one unconventional strategy. Plain text only.`,1500);
+      setResult(text);setParsed(parseResult(text));
+      setHistory(h=>[{id:Date.now(),date:new Date().toLocaleDateString(),company:form.company,name:form.name,language,targetIndustry:form.targetIndustry,targetLocation:form.targetLocation,text},...h.slice(0,19)]);
+    }catch(e){setResult("Error. Please try again.");}
+    setLoading(false);
+  };
+
+  const generateSocial=async()=>{setSocialLoading(true);setSocialResult(null);try{setSocialResult(await aiCall(`Social media expert. 3 ready-to-post ${socialForm.platform} posts for: Business:${socialForm.business} Niche:${socialForm.niche} Goal:${socialForm.goal} Tone:${socialForm.tone}. In ${language}. Label: Post 1: / Post 2: / Post 3:. Each: caption + 5 hashtags. Plain text.`));}catch(e){setSocialResult("Error.");}setSocialLoading(false);};
+  const generatePricing=async()=>{setPricingLoading(true);setPricingResult(null);try{setPricingResult(await aiCall(`Freelance pricing expert. Service:${pricingForm.service} Hours:${pricingForm.hours} Experience:${pricingForm.experience} Location:${pricingForm.location} Type:${pricingForm.projectType}. In ${language}. Give: 1)Price range low/mid/high 2)Justify price 3)Package includes 4)Tip to charge more. Plain text.`));}catch(e){setPricingResult("Error.");}setPricingLoading(false);};
+  const generateInvoice=async()=>{setInvoiceLoading(true);setInvoiceResult(null);try{setInvoiceResult(await aiCall(`Professional invoice in ${language}: FROM:${invoiceForm.yourName}(${invoiceForm.yourEmail}) TO:${invoiceForm.clientName}(${invoiceForm.clientEmail}) SERVICE:${invoiceForm.service} AMOUNT:${invoiceForm.currency} ${invoiceForm.amount} DUE:${invoiceForm.dueDate} NOTES:${invoiceForm.notes||"N/A"}. Include invoice number, date, details, amount, due date, payment instructions, thank you note. Plain text.`,900));}catch(e){setInvoiceResult("Error.");}setInvoiceLoading(false);};
+  const generateProposal=async()=>{setPropLoading(true);setPropResult(null);try{setPropResult(await aiCall(`Professional proposal in ${language}: YOUR:${propForm.yourName}/${propForm.company} CLIENT:${propForm.clientName}/${propForm.clientBusiness} SERVICE:${propForm.service} BUDGET:${propForm.budget} TIMELINE:${propForm.timeline} PROBLEM:${propForm.problem}. Include: executive summary, problem, solution, deliverables, timeline, pricing, why hire us, next steps. Plain text.`,1200));}catch(e){setPropResult("Error.");}setPropLoading(false);};
+  const generateFollowup=async(fu)=>{setFuLoading(true);setFuMsg(null);setSelFu(fu);try{setFuMsg(await aiCall(`Warm non-pushy follow-up in ${language}: Client:${fu.clientName} at ${fu.company} Reason:${fu.reason} Last contacted:${fu.lastContacted} Notes:${fu.notes||"N/A"}. Write 2 versions: WhatsApp (under 50 words) and Email (subject + body under 80 words). Label: WhatsApp: and Email: Plain text.`));}catch(e){setFuMsg("Error.");}setFuLoading(false);};
+  const generateNames=async()=>{setNamingLoading(true);setNamingResult(null);try{setNamingResult(await aiCall(`Business name generator in ${language}. Industry:${namingForm.industry} Style:${namingForm.style} Keywords:${namingForm.keywords||"none"} Market:${namingForm.location||"global"}. 10 unique names with meaning/why it works + domain tip. Also 3 taglines. Plain text.`));}catch(e){setNamingResult("Error.");}setNamingLoading(false);};
+  const generateCompetitor=async()=>{setCompLoading(true);setCompResult(null);try{setCompResult(await aiCall(`Competitor analysis in ${language}. My service:${compForm.yourService} Location:${compForm.yourLocation} Competitor:${compForm.competitor||"general market"}. Give: 1)How to differentiate 2)Unique selling points 3)Pricing strategy 4)Marketing angles competitors miss 5)How to win their clients. Plain text.`));}catch(e){setCompResult("Error.");}setCompLoading(false);};
+
+  const handlePayment=async()=>{
+    setPayScreen("processing");setPayProgress(0);
+    for(const p of [15,35,60,85,100]){await new Promise(r=>setTimeout(r,400));setPayProgress(p);}
+    await new Promise(r=>setTimeout(r,300));
+    setUserPlan(payPlan?.id||"pro");setPayScreen("success");
+  };
+
+  const copyText=(text,id)=>{navigator.clipboard.writeText(text);setCopied(id);setTimeout(()=>setCopied(null),2500);};
+  const openWhatsApp=msg=>window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");
+  const openEmail=(subject,body)=>window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,"_blank");
+  const downloadFile=(content,name)=>{const b=new Blob([content],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);};
+  const getPayPrice=(p)=>{if(!p||p.price===0)return 0;return Math.round((billing==="yearly"?p.price*10:p.price)*currency.rate);};
+  const fmtPayPrice=(p)=>{if(!p||p.price===0)return"Free";const n=getPayPrice(p);return`${currency.symbol}${n>=1000?n.toLocaleString():n}`;};
+  const formatCard=v=>v.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim().slice(0,19);
+  const formatExpiry=v=>v.replace(/\D/g,"").replace(/^(.{2})(.)/,"$1/$2").slice(0,5);
+
+  // Reusable UI
+  const card=(children,extra={})=><div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:16,marginBottom:11,...extra}}>{children}</div>;
+  const inp=(key,placeholder,label,obj,setObj,transform)=>(
+    <div><label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{label}</label>
+    <input value={obj[key]} placeholder={placeholder} onChange={e=>setObj(o=>({...o,[key]:transform?transform(e.target.value):e.target.value}))}
+      style={{width:"100%",padding:"10px 13px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+  );
+  const sel=(key,options,label,obj,setObj)=>(
+    <div><label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{label}</label>
+    <select value={obj[key]} onChange={e=>setObj(o=>({...o,[key]:e.target.value}))}
+      style={{width:"100%",padding:"10px 13px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box"}}>{options.map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+  );
+  const pill=(label,active,onClick,ac="#a78bfa",ab="rgba(167,139,250,0.18)")=>(
+    <button key={label} onClick={onClick} style={{padding:"6px 11px",borderRadius:100,fontSize:12,cursor:"pointer",border:active?`1px solid ${ac}`:`1px solid ${T.border}`,background:active?ab:T.surface,color:active?ac:T.mid,fontWeight:active?700:400,transition:"all 0.18s"}}>{label}</button>
+  );
+  const AIBtn=({onClick,loading:l,disabled,label})=>(
+    <button onClick={onClick} disabled={disabled||l} style={{width:"100%",padding:"12px",borderRadius:11,fontSize:14,fontWeight:700,cursor:"pointer",border:"none",background:(disabled||l)?(dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.07)"):"linear-gradient(135deg,#a78bfa,#60a5fa)",color:(disabled||l)?(dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.2)"):"#fff",marginTop:6}}>{l?"Generating...":label}</button>
+  );
+  const ResultBox=({text,id,filename})=>text?(
+    <div>{card(<pre style={{whiteSpace:"pre-wrap",fontSize:13,color:T.mid,lineHeight:1.8,margin:0,fontFamily:"inherit"}}>{text}</pre>)}
+    <div style={{display:"flex",gap:7}}>
+      <button onClick={()=>copyText(text,id)} style={{flex:1,padding:"9px",borderRadius:9,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied===id?"#16a34a":T.text,fontWeight:600}}>{copied===id?"✓ Copied":"📋 Copy"}</button>
+      {filename&&<button onClick={()=>downloadFile(text,filename)} style={{flex:1,padding:"9px",borderRadius:9,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.text,fontWeight:600}}>📄 Download</button>}
+    </div></div>
+  ):null;
+
+  // Header bar used inside app
+  const AppHeader=()=>(
+    <div style={{background:dark?"rgba(15,12,41,0.95)":"rgba(240,244,255,0.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+        <div><div style={{fontWeight:700,fontSize:13,color:T.text}}>ClientAI Pro</div>
+        <div style={{fontSize:9,color:T.sub}}>{userPlan==="free"?"Free Plan":userPlan==="pro"?"Pro Plan ⭐":"Agency Plan 👑"}</div></div>
+      </div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        {userPlan==="free"&&<button onClick={()=>setAppView("upgrade")} style={{padding:"5px 11px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>⭐ Upgrade</button>}
+        {/* Lang */}
+        <div style={{position:"relative"}}>
+          <button onClick={()=>{setShowLang(v=>!v);setShowCurr(false);}} style={{padding:"5px 8px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>{selectedLang.flag}</button>
+          {showLang&&<div style={{position:"absolute",right:0,top:"110%",background:T.drop,border:`1px solid ${T.border}`,borderRadius:11,padding:7,zIndex:300,width:185,maxHeight:250,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+            {LANGUAGES.map(l=><button key={l.code} onClick={()=>{setLanguage(l.code);setShowLang(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:7,padding:"7px 9px",borderRadius:7,background:language===l.code?(dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.08)"):"transparent",border:"none",color:language===l.code?"#a78bfa":T.mid,cursor:"pointer",fontSize:13,fontWeight:language===l.code?700:400,textAlign:"left"}}><span style={{fontSize:15}}>{l.flag}</span>{l.label}</button>)}
+          </div>}
+        </div>
+        <button onClick={()=>setDark(d=>!d)} style={{padding:"5px 8px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+        <button onClick={()=>setShowNav(v=>!v)} style={{padding:"5px 8px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>☰</button>
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // LANDING PAGE
+  // ============================================================
+  if(appView==="landing") return (
+    <div style={{minHeight:"100vh",background:dark?"#0a0814":"#f0f4ff",fontFamily:"'Inter',sans-serif",color:dark?"#f0eeff":"#1a1040",transition:"all 0.3s"}}>
+      {/* Nav */}
+      <div style={{background:dark?"rgba(10,8,20,0.9)":"rgba(255,255,255,0.9)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${dark?"rgba(167,139,250,0.15)":"rgba(167,139,250,0.2)"}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>⚡</div>
+          <span style={{fontWeight:800,fontSize:16,color:dark?"#fff":"#1a1040"}}>ClientAI Pro</span>
+        </div>
+        <div style={{display:"flex",gap:9,alignItems:"center"}}>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:8,background:dark?"rgba(255,255,255,0.08)":"rgba(124,58,237,0.08)",border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.2)"}`,color:dark?"#fff":"#1a1040",cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+          <button onClick={()=>{setAppView("upgrade");setPayScreen("plans");}} style={{padding:"8px 16px",borderRadius:100,border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.3)"}`,background:"transparent",color:dark?"rgba(255,255,255,0.7)":"#6b7280",cursor:"pointer",fontSize:13,fontWeight:600}}>Pricing</button>
+          <button onClick={()=>setAppView("app")} style={{padding:"8px 18px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 4px 16px rgba(167,139,250,0.3)"}}>Try Free ⚡</button>
+        </div>
+      </div>
+      {/* Hero */}
+      <div style={{textAlign:"center",padding:"90px 20px 70px",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"10%",left:"50%",transform:"translateX(-50%)",width:600,height:300,background:"radial-gradient(ellipse,rgba(167,139,250,0.15) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:dark?"rgba(167,139,250,0.12)":"rgba(124,58,237,0.08)",border:`1px solid ${dark?"rgba(167,139,250,0.3)":"rgba(124,58,237,0.15)"}`,borderRadius:100,padding:"5px 14px",fontSize:12,color:"#a78bfa",fontWeight:600,marginBottom:22}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"#a78bfa",display:"inline-block"}}/>⚡ 10 AI Tools · 24 Languages · All in One App
+        </div>
+        <h1 style={{fontSize:"clamp(32px,7vw,68px)",fontWeight:800,lineHeight:1.05,letterSpacing:"-2px",margin:"0 0 20px",maxWidth:700,marginLeft:"auto",marginRight:"auto",color:dark?"#fff":"#1a1040"}}>
+          Get clients faster with <span style={{background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>AI that works</span> for you
+        </h1>
+        <p style={{fontSize:"clamp(15px,2.5vw,19px)",color:dark?"rgba(240,238,255,0.65)":"#6b7280",maxWidth:500,margin:"0 auto 36px",lineHeight:1.65}}>
+          ClientAI Pro builds your strategy, writes your outreach, tracks clients, creates invoices and proposals — in any language, in seconds.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:52}}>
+          <button onClick={()=>setAppView("app")} style={{padding:"14px 30px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 24px rgba(167,139,250,0.35)"}}>⚡ Start Free — No Card Needed</button>
+          <button onClick={()=>{setAppView("upgrade");setPayScreen("plans");}} style={{padding:"14px 30px",borderRadius:100,border:`1px solid ${dark?"rgba(255,255,255,0.15)":"rgba(167,139,250,0.3)"}`,background:"transparent",color:dark?"#fff":"#1a1040",fontSize:16,fontWeight:600,cursor:"pointer"}}>See Pricing →</button>
+        </div>
+        {/* Stats */}
+        <div style={{display:"flex",gap:36,justifyContent:"center",flexWrap:"wrap"}}>
+          {[["10","AI Tools"],["24","Languages"],["60s","To Strategy"],["100%","AI-Powered"]].map(([n,l])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontSize:30,fontWeight:800,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{n}</div>
+              <div style={{fontSize:12,color:dark?"rgba(255,255,255,0.45)":"#9ca3af",marginTop:2}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Tools grid */}
+      <div style={{maxWidth:980,margin:"0 auto",padding:"0 20px 80px"}}>
+        <div style={{textAlign:"center",marginBottom:36}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"#a78bfa",marginBottom:10}}>Everything you need</div>
+          <h2 style={{fontSize:"clamp(24px,4vw,38px)",fontWeight:800,letterSpacing:"-1px",color:dark?"#fff":"#1a1040"}}>10 tools. One app. <span style={{background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Zero limits.</span></h2>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12}}>
+          {[["⚡","Strategy","Full client acquisition plan in 60s"],["📂","History","All past strategies saved automatically"],["👥","Tracker","Track every lead from contact to close"],["📱","Social Posts","3 ready captions + hashtags per platform"],["💰","Pricing","Know exactly what to charge clients"],["🧾","Invoice","Professional invoices in seconds"],["📄","Proposal","Win clients with a compelling proposal"],["🔔","Follow-up","AI writes your follow-up messages"],["✨","Name AI","10 business name ideas + taglines"],["🔍","Competitor","Beat competition with AI insights"]].map(([icon,name,desc])=>(
+            <div key={name} onClick={()=>setAppView("app")} style={{background:dark?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.8)",border:`1px solid ${dark?"rgba(255,255,255,0.08)":"rgba(167,139,250,0.15)"}`,borderRadius:14,padding:18,cursor:"pointer",transition:"all 0.2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=dark?"rgba(167,139,250,0.4)":"rgba(124,58,237,0.3)";}}
+              onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.borderColor=dark?"rgba(255,255,255,0.08)":"rgba(167,139,250,0.15)";}}>
+              <div style={{fontSize:24,marginBottom:10}}>{icon}</div>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:dark?"#fff":"#1a1040"}}>{name}</div>
+              <div style={{fontSize:12,color:dark?"rgba(255,255,255,0.45)":"#9ca3af",lineHeight:1.5}}>{desc}</div>
+            </div>
+          ))}
+        </div>
+        {/* CTA */}
+        <div style={{textAlign:"center",marginTop:60,padding:"48px 24px",background:dark?"rgba(167,139,250,0.06)":"rgba(124,58,237,0.04)",border:`1px solid ${dark?"rgba(167,139,250,0.15)":"rgba(167,139,250,0.2)"}`,borderRadius:20}}>
+          <h2 style={{fontSize:"clamp(22px,4vw,36px)",fontWeight:800,margin:"0 0 12px",letterSpacing:"-1px",color:dark?"#fff":"#1a1040"}}>Ready to get your <span style={{background:"linear-gradient(135deg,#a78bfa,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>next client?</span></h2>
+          <p style={{color:dark?"rgba(255,255,255,0.5)":"#9ca3af",fontSize:15,marginBottom:28}}>Join thousands of freelancers growing with ClientAI Pro.</p>
+          <button onClick={()=>setAppView("app")} style={{padding:"14px 32px",borderRadius:100,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 24px rgba(167,139,250,0.3)"}}>⚡ Try It Free Now</button>
+          <p style={{color:dark?"rgba(255,255,255,0.3)":"#d1d5db",fontSize:12,marginTop:12}}>No credit card · 24 languages · Cancel anytime</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // UPGRADE / PAYMENT
+  // ============================================================
+  if(appView==="upgrade") return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,transition:"all 0.3s"}}>
+      <div style={{background:dark?"rgba(15,12,41,0.95)":"rgba(240,244,255,0.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.border}`,padding:"13px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+          <span style={{fontWeight:700,fontSize:14,color:T.text}}>ClientAI Pro · Upgrade</span>
+        </div>
+        <div style={{display:"flex",gap:7}}>
+          {/* Currency */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>{setShowCurr(v=>!v);}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 9px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:12,fontWeight:600}}>{currency.flag} {currency.code} <span style={{fontSize:9,opacity:0.5}}>▼</span></button>
+            {showCurr&&<div style={{position:"absolute",right:0,top:"110%",background:T.drop,border:`1px solid ${T.border}`,borderRadius:11,padding:7,zIndex:300,width:170,maxHeight:240,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+              {CURRENCIES.map(c=><button key={c.code} onClick={()=>{setCurrency(c);setShowCurr(false);}} style={{width:"100%",display:"flex",justifyContent:"space-between",padding:"7px 9px",borderRadius:7,background:currency.code===c.code?(dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.08)"):"transparent",border:"none",color:currency.code===c.code?"#a78bfa":T.mid,cursor:"pointer",fontSize:13,fontWeight:currency.code===c.code?700:400}}><span>{c.flag} {c.code}</span><span style={{opacity:0.6,fontSize:11}}>{c.symbol}</span></button>)}
+            </div>}
+          </div>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13}}>{dark?"☀️":"🌙"}</button>
+          <button onClick={()=>setAppView("app")} style={{padding:"6px 12px",borderRadius:8,background:T.card,border:`1px solid ${T.border}`,color:T.mid,cursor:"pointer",fontSize:12,fontWeight:600}}>← Back to App</button>
+        </div>
+      </div>
+      <div style={{maxWidth:800,margin:"0 auto",padding:"28px 16px 60px"}}>
+        {payScreen==="plans"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:26}}>
+              <h1 style={{fontSize:26,fontWeight:800,margin:"0 0 8px",color:T.text}}>Choose your plan</h1>
+              <p style={{color:T.sub,fontSize:14,marginBottom:18}}>Upgrade anytime · Cancel anytime</p>
+              <div style={{display:"inline-flex",background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,padding:4}}>
+                {["monthly","yearly"].map(b=><button key={b} onClick={()=>setBilling(b)} style={{padding:"7px 16px",borderRadius:100,border:"none",background:billing===b?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",color:billing===b?"#fff":T.sub,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+                  {b==="monthly"?"Monthly":"Yearly"}{b==="yearly"&&<span style={{background:"rgba(52,211,153,0.25)",color:"#34d399",borderRadius:100,padding:"1px 7px",fontSize:10}}>-17%</span>}
+                </button>)}
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginBottom:20}}>
+              {PLANS.map(p=>(
+                <div key={p.id} style={{background:T.card,borderRadius:18,border:p.id==="pro"?`2px solid rgba(167,139,250,0.6)`:`1px solid ${T.border}`,padding:22,position:"relative",cursor:"pointer",transition:"all 0.2s"}}
+                  onClick={()=>{if(p.price===0){setUserPlan("free");setAppView("app");}else{setPayPlan(p);setPayMethod(null);setPayScreen("checkout");}}}>
+                  {p.badge&&<div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:100,whiteSpace:"nowrap"}}>{p.badge}</div>}
+                  <div style={{fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:1.5,color:p.color,marginBottom:8}}>{p.name}</div>
+                  <div style={{fontWeight:800,fontSize:34,color:T.text,marginBottom:2}}>{fmtPayPrice(p)}</div>
+                  {p.price>0&&<div style={{fontSize:12,color:T.sub,marginBottom:10}}>/{billing==="monthly"?"mo":"yr"}</div>}
+                  {billing==="yearly"&&p.price>0&&<div style={{fontSize:12,color:"#34d399",marginBottom:10,fontWeight:600}}>Save {currency.symbol}{Math.round(p.price*2*currency.rate)}/yr</div>}
+                  <div style={{height:1,background:T.border,margin:"12px 0"}}/>
+                  {p.features.map(f=><div key={f} style={{display:"flex",gap:7,marginBottom:7}}><span style={{color:"#34d399",fontSize:12,fontWeight:700,flexShrink:0}}>✓</span><span style={{fontSize:12,color:T.mid,lineHeight:1.4}}>{f}</span></div>)}
+                  <button style={{marginTop:14,width:"100%",padding:"11px",borderRadius:11,border:p.price===0?`1px solid ${T.border}`:"none",background:p.price===0?"transparent":p.id==="pro"?"linear-gradient(135deg,#a78bfa,#60a5fa)":`linear-gradient(135deg,#60a5fa,#34d399)`,color:p.price===0?T.sub:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                    {p.price===0?"Use Free":"Get "+p.name+" →"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{textAlign:"center"}}><p style={{fontSize:12,color:T.sub}}>🔒 Secured by Stripe · PayPal · PromptPay · Bank Transfer</p></div>
+          </div>
+        )}
+        {payScreen==="checkout"&&payPlan&&(
+          <div>
+            <button onClick={()=>setPayScreen("plans")} style={{marginBottom:16,padding:"7px 13px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>← Back</button>
+            {card(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,color:T.text}}>ClientAI {payPlan.name}</div><div style={{fontSize:12,color:T.sub}}>{billing} · {currency.code}</div></div><div style={{fontWeight:800,fontSize:22,color:T.text}}>{fmtPayPrice(payPlan)}</div></div>)}
+            <div style={{marginBottom:14}}><div style={{fontSize:12,color:T.sub,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:9}}>Payment Method</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{id:"card",icon:"💳",label:"Card",sub:"Visa·MC·Amex"},{id:"paypal",icon:"🅿️",label:"PayPal",sub:"Fast & secure"},{id:"promptpay",icon:"🇹🇭",label:"PromptPay",sub:"Thailand QR"},{id:"bank",icon:"🏦",label:"Bank",sub:"Worldwide"}].map(m=>(
+                <button key={m.id} onClick={()=>setPayMethod(m.id)} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 13px",borderRadius:11,border:payMethod===m.id?`2px solid #a78bfa`:`1px solid ${T.border}`,background:payMethod===m.id?(dark?"rgba(167,139,250,0.1)":"rgba(124,58,237,0.06)"):T.card,cursor:"pointer",textAlign:"left"}}>
+                  <span style={{fontSize:20}}>{m.icon}</span><div><div style={{fontWeight:700,fontSize:13,color:T.text}}>{m.label}</div><div style={{fontSize:10,color:T.sub}}>{m.sub}</div></div>
+                  {payMethod===m.id&&<div style={{marginLeft:"auto",width:16,height:16,borderRadius:"50%",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",flexShrink:0}}>✓</div>}
+                </button>
+              ))}
+            </div></div>
+            {payMethod==="card"&&card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>💳 Card Details</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {inp("name","John Smith","Full Name",payForm,setPayForm)}
+                {inp("email","john@email.com","Email",payForm,setPayForm)}
+                {inp("card","1234 5678 9012 3456","Card Number",payForm,setPayForm,formatCard)}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+                  {inp("expiry","MM/YY","Expiry",payForm,setPayForm,formatExpiry)}
+                  {inp("cvv","123","CVV",payForm,setPayForm)}
+                </div>
+              </div>
+              <button onClick={handlePayment} style={{marginTop:14,width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>🔒 Pay {fmtPayPrice(payPlan)}</button>
+            </div>)}
+            {payMethod==="paypal"&&card(<div style={{textAlign:"center",padding:"8px 0"}}>
+              <div style={{fontSize:40,marginBottom:8}}>🅿️</div>
+              <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:6}}>Pay with PayPal</div>
+              <p style={{fontSize:13,color:T.sub,marginBottom:14}}>Complete payment of <strong style={{color:T.text}}>{fmtPayPrice(payPlan)}</strong> via PayPal.</p>
+              <div style={{marginBottom:12}}>{inp("paypalEmail","your@paypal.com","PayPal Email",payForm,setPayForm)}</div>
+              <button onClick={handlePayment} style={{width:"100%",padding:"12px",borderRadius:11,border:"none",background:"#0070ba",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>🅿️ Pay with PayPal</button>
+            </div>)}
+            {payMethod==="promptpay"&&card(<div style={{textAlign:"center"}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>🇹🇭 PromptPay QR</div>
+              <p style={{fontSize:12,color:T.sub,marginBottom:14}}>Amount: <strong>฿{Math.round(payPlan.price*(billing==="yearly"?10:1)*35)}</strong></p>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><QRVisual size={150}/></div>
+              <div style={{background:T.surface,borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",border:`1px solid ${T.border}`}}>
+                <div style={{textAlign:"left"}}><div style={{fontSize:10,color:T.sub}}>PromptPay</div><div style={{fontWeight:800,fontSize:16,color:T.text,letterSpacing:2}}>081-234-5678</div></div>
+                <button onClick={()=>{copyText("0812345678","pp");}} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,color:copied==="pp"?"#34d399":"#a78bfa",fontSize:11,fontWeight:700,cursor:"pointer"}}>{copied==="pp"?"✓":"Copy"}</button>
+              </div>
+              <div style={{marginBottom:12}}>{inp("email","your@email.com","Your Email",payForm,setPayForm)}</div>
+              <button onClick={handlePayment} style={{width:"100%",padding:"12px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#34d399,#059669)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>✅ I've Sent the Payment</button>
+            </div>)}
+            {payMethod==="bank"&&card(<div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>🏦 Bank Transfer</div>
+              {[["Bank","Bangkok Bank / KBank"],["Account","ClientAI Pro Ltd"],["Number","123-4-56789-0"],["Amount",fmtPayPrice(payPlan)+" ("+currency.code+")"],["Reference","Your email"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
+                  <span style={{fontSize:13,color:T.sub}}>{l}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:13,fontWeight:700,color:T.text}}>{v}</span><button onClick={()=>copyText(v,l)} style={{padding:"2px 7px",borderRadius:5,border:`1px solid ${T.border}`,background:T.surface,color:"#a78bfa",fontSize:9,fontWeight:700,cursor:"pointer"}}>Copy</button></div>
+                </div>
+              ))}
+              <div style={{marginTop:12}}>{inp("email","your@email.com","Your Email (for confirmation)",payForm,setPayForm)}</div>
+              <button onClick={handlePayment} style={{marginTop:12,width:"100%",padding:"12px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>✅ I've Made the Transfer</button>
+            </div>)}
+            {!payMethod&&<div style={{textAlign:"center",padding:"16px",color:T.sub,fontSize:13}}>👆 Select a payment method above</div>}
+          </div>
+        )}
+        {payScreen==="processing"&&(
+          <div style={{textAlign:"center",padding:"80px 20px"}}>
+            <div style={{fontSize:44,marginBottom:14}}>⚡</div>
+            <h2 style={{fontSize:22,fontWeight:700,marginBottom:8,color:T.text}}>Processing payment...</h2>
+            <div style={{maxWidth:260,margin:"24px auto"}}>
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,height:7,overflow:"hidden",marginBottom:14}}>
+                <div style={{height:"100%",width:`${payProgress}%`,background:"linear-gradient(90deg,#a78bfa,#60a5fa)",borderRadius:100,transition:"width 0.4s ease"}}/>
+              </div>
+              <div style={{fontSize:13,color:T.sub}}>{payProgress}% complete</div>
+            </div>
+          </div>
+        )}
+        {payScreen==="success"&&(
+          <div style={{textAlign:"center",padding:"50px 20px"}}>
+            <div style={{fontSize:56,marginBottom:14}}>🎉</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:100,padding:"4px 12px",fontSize:12,color:"#34d399",fontWeight:700,marginBottom:14}}>✓ Payment Confirmed</div>
+            <h1 style={{fontSize:24,fontWeight:800,margin:"0 0 8px",color:T.text}}>Welcome to ClientAI {payPlan?.name}!</h1>
+            <p style={{color:T.sub,fontSize:14,marginBottom:24}}>Your plan is now active. Enjoy all your tools!</p>
+            <button onClick={()=>{setAppView("app");setPayScreen("plans");}} style={{padding:"13px 28px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 20px rgba(167,139,250,0.3)"}}>⚡ Open ClientAI Pro →</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // MAIN APP (10 TOOLS)
+  // ============================================================
+  return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,transition:"all 0.3s",paddingBottom:72}}>
+      <AppHeader/>
+      {/* Slide nav */}
+      {showNav&&<div style={{position:"fixed",inset:0,zIndex:200}} onClick={()=>setShowNav(false)}>
+        <div style={{position:"absolute",right:0,top:0,bottom:0,width:210,background:T.drop,borderLeft:`1px solid ${T.border}`,padding:"16px 10px",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:12,padding:"0 4px"}}>All Tools</div>
+          {TOOLS.map(s=><button key={s.id} onClick={()=>{setScreen(s.id);setShowNav(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"10px 11px",borderRadius:9,marginBottom:3,background:screen===s.id?(dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.1)"):"transparent",border:"none",color:screen===s.id?"#a78bfa":T.mid,cursor:"pointer",fontSize:14,fontWeight:screen===s.id?700:400,textAlign:"left"}}><span style={{fontSize:17}}>{s.icon}</span>{s.label}</button>)}
+          <div style={{borderTop:`1px solid ${T.border}`,marginTop:12,paddingTop:12}}>
+            <button onClick={()=>{setAppView("landing");}} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1px solid ${T.border}`,background:"transparent",color:T.sub,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left"}}>🏠 Home / Landing</button>
+            <button onClick={()=>{setAppView("upgrade");setPayScreen("plans");setShowNav(false);}} style={{width:"100%",marginTop:7,padding:"9px 11px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>⭐ Upgrade Plan</button>
+          </div>
+        </div>
+      </div>}
+
+      <div style={{maxWidth:680,margin:"0 auto",padding:"20px 15px"}}>
+
+        {/* GENERATE */}
+        {screen==="generate"&&(<div>
+          {step===0&&<div>
+            <div style={{textAlign:"center",marginBottom:20}}><h1 style={{fontSize:22,fontWeight:800,margin:"0 0 5px",color:T.text}}>⚡ Generate Strategy</h1><p style={{color:T.sub,fontSize:13,margin:0}}>Step 1 of 2 · {selectedLang.flag} {selectedLang.label}</p></div>
+            <div style={{display:"flex",flexDirection:"column",gap:11}}>
+              {inp("name","e.g. Sarah","Your Name",form,setForm)}{inp("company","e.g. Studio Nook","Company",form,setForm)}{inp("phone","e.g. +66 89 123 4567","Phone",form,setForm)}{inp("email","e.g. hello@studio.com","Email",form,setForm)}{inp("budget","e.g. $200/month","Budget (optional)",form,setForm)}
+              <div><label style={{fontSize:12,color:T.sub,marginBottom:6,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Industry</label><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{industries.map(i=>pill(i,form.industry===i,()=>setForm(f=>({...f,industry:i})),"#a78bfa",dark?"rgba(167,139,250,0.18)":"rgba(124,58,237,0.1)"))}</div></div>
+              <div><label style={{fontSize:12,color:T.sub,marginBottom:6,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Services You Offer ✅</label><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{services.map(s=>pill(s,form.offering.includes(s),()=>toggle("offering",s),"#16a34a","rgba(22,163,74,0.12)"))}</div></div>
+              <div><label style={{fontSize:12,color:T.sub,marginBottom:6,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Don't Want ❌</label><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{services.map(s=>pill(s,form.notWanting.includes(s),()=>toggle("notWanting",s),"#dc2626","rgba(220,38,38,0.11)"))}</div></div>
+            </div>
+            <button onClick={()=>setStep(1)} disabled={!form.name||!form.company||!form.industry} style={{marginTop:18,width:"100%",padding:"13px",borderRadius:11,fontSize:14,fontWeight:700,cursor:"pointer",border:"none",background:(!form.name||!form.company||!form.industry)?(dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.07)"):"linear-gradient(135deg,#a78bfa,#60a5fa)",color:(!form.name||!form.company||!form.industry)?(dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.2)"):"#fff"}}>Next →</button>
+          </div>}
+          {step===1&&<div>
+            <div style={{textAlign:"center",marginBottom:20}}><h1 style={{fontSize:22,fontWeight:800,margin:"0 0 5px",color:T.text}}>🎯 Ideal Client</h1><p style={{color:T.sub,fontSize:13,margin:0}}>Step 2 of 2</p></div>
+            <div style={{display:"flex",flexDirection:"column",gap:11}}>
+              {inp("targetLocation","e.g. Bangkok, Thailand","Target Location",form,setForm)}
+              <div><label style={{fontSize:12,color:T.sub,marginBottom:6,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Target Industry</label><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{industries.map(i=>pill(i,form.targetIndustry===i,()=>setForm(f=>({...f,targetIndustry:i})),"#60a5fa",dark?"rgba(96,165,250,0.18)":"rgba(37,99,235,0.1)"))}</div></div>
+              <div><label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Goal</label><textarea value={form.goal} placeholder="e.g. Get 5 restaurant clients this month" onChange={e=>setForm(f=>({...f,goal:e.target.value}))} rows={3} style={{width:"100%",padding:"10px 13px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",resize:"none",fontFamily:"inherit"}}/></div>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:16}}>
+              <button onClick={()=>setStep(0)} style={{flex:1,padding:"12px",borderRadius:11,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>← Back</button>
+              <button onClick={generateStrategy} disabled={!form.targetLocation||!form.targetIndustry} style={{flex:2,padding:"12px",borderRadius:11,fontSize:14,fontWeight:700,cursor:"pointer",border:"none",background:(!form.targetLocation||!form.targetIndustry)?(dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.07)"):"linear-gradient(135deg,#a78bfa,#60a5fa)",color:(!form.targetLocation||!form.targetIndustry)?(dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.2)"):"#fff"}}>⚡ Generate in {selectedLang.label}</button>
+            </div>
+          </div>}
+          {step===2&&(loading?<div style={{textAlign:"center",padding:"70px 20px"}}><div style={{fontSize:40,marginBottom:12}}>{selectedLang.flag}</div><h2 style={{fontSize:20,fontWeight:700,color:T.text}}>Generating in {selectedLang.label}...</h2></div>:
+          <div>
+            <div style={{textAlign:"center",marginBottom:18}}><div style={{fontSize:34,marginBottom:7}}>🎯</div><h1 style={{fontSize:20,fontWeight:800,margin:"0 0 4px",color:T.text}}>Your Strategy</h1><span style={{background:dark?"rgba(167,139,250,0.15)":"rgba(124,58,237,0.08)",borderRadius:100,padding:"2px 9px",fontSize:11,color:"#a78bfa"}}>{selectedLang.flag} {selectedLang.label}</span></div>
+            <div style={{display:"flex",gap:4,marginBottom:12,background:T.surface,borderRadius:10,padding:4}}>
+              {[{id:"strategy",l:"📋"},{id:"whatsapp",l:"💬"},{id:"email",l:"📧"}].map(t=><button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:activeTab===t.id?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",color:activeTab===t.id?"#fff":T.sub}}>{t.l}</button>)}
+            </div>
+            {activeTab==="strategy"&&card(<pre style={{whiteSpace:"pre-wrap",fontSize:13,color:T.mid,lineHeight:1.8,margin:0,fontFamily:"inherit"}}>{result}</pre>)}
+            {activeTab==="whatsapp"&&(parsed.whatsapp.length>0?parsed.whatsapp.map((msg,i)=>card(<div key={i}><div style={{fontWeight:700,color:"#16a34a",marginBottom:6,fontSize:13}}>💬 {msg.label}</div><p style={{fontSize:13,color:T.mid,lineHeight:1.65,margin:"0 0 10px"}}>{msg.body.join(" ")}</p><div style={{display:"flex",gap:6}}><button onClick={()=>copyText(msg.body.join(" "),`wa${i}`)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied===`wa${i}`?"#16a34a":T.mid,fontWeight:600}}>{copied===`wa${i}`?"✓":"📋"}</button><button onClick={()=>openWhatsApp(msg.body.join(" "))} style={{flex:2,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#25d366,#128c7e)",color:"#fff",fontWeight:700}}>Send WhatsApp →</button></div></div>)):card(<p style={{color:T.sub,fontSize:13,textAlign:"center",margin:0}}>See Strategy tab.</p>))}
+            {activeTab==="email"&&(parsed.emails.length>0?parsed.emails.map((em,i)=>card(<div key={i}><div style={{fontWeight:700,color:"#60a5fa",marginBottom:6,fontSize:13}}>📧 Template {i+1}</div><div style={{background:dark?"rgba(96,165,250,0.1)":"rgba(37,99,235,0.07)",borderRadius:7,padding:"6px 10px",marginBottom:8}}><span style={{fontSize:11,color:T.sub}}>Subject: </span><span style={{fontSize:13,color:T.text,fontWeight:600}}>{em.subject}</span></div><p style={{fontSize:13,color:T.mid,lineHeight:1.65,margin:"0 0 9px"}}>{em.body.join(" ")}</p><div style={{display:"flex",gap:6}}><button onClick={()=>copyText(`Subject: ${em.subject}\n\n${em.body.join("\n")}`,`em${i}`)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied===`em${i}`?"#16a34a":T.mid,fontWeight:600}}>{copied===`em${i}`?"✓":"📋"}</button><button onClick={()=>openEmail(em.subject,em.body.join("\n"))} style={{flex:2,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#60a5fa,#3b82f6)",color:"#fff",fontWeight:700}}>Open Email →</button></div></div>)):card(<p style={{color:T.sub,fontSize:13,textAlign:"center",margin:0}}>See Strategy tab.</p>))}
+            <div style={{display:"flex",gap:6,marginTop:10}}>
+              <button onClick={()=>downloadFile(result,`${form.company}_strategy.txt`)} style={{flex:1,padding:"9px",borderRadius:9,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.text,fontWeight:600}}>📄 Save</button>
+              <button onClick={()=>copyText(result,"all")} style={{flex:1,padding:"9px",borderRadius:9,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied==="all"?"#16a34a":T.text,fontWeight:600}}>{copied==="all"?"✓":"📋 Copy"}</button>
+              <button onClick={()=>{setStep(0);setResult(null);setActiveTab("strategy");}} style={{flex:1,padding:"9px",borderRadius:9,fontSize:12,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>⚡ New</button>
+            </div>
+          </div>)}
+        </div>)}
+
+        {/* HISTORY */}
+        {screen==="history"&&<div>
+          <h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>📂 History</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>{history.length} strategies saved</p>
+          {viewHist?<div><button onClick={()=>setViewHist(null)} style={{marginBottom:12,padding:"7px 13px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>← Back</button>{card(<div><div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:3}}>{viewHist.company}</div><div style={{fontSize:11,color:T.sub,marginBottom:12}}>{viewHist.date} · {viewHist.language}</div><pre style={{whiteSpace:"pre-wrap",fontSize:13,color:T.mid,lineHeight:1.8,margin:0,fontFamily:"inherit"}}>{viewHist.text}</pre></div>)}<button onClick={()=>copyText(viewHist.text,"hist")} style={{width:"100%",padding:"9px",borderRadius:9,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied==="hist"?"#16a34a":T.text,fontWeight:600}}>{copied==="hist"?"✓ Copied":"📋 Copy"}</button></div>
+          :history.length===0?card(<div style={{textAlign:"center",padding:"28px 0"}}><div style={{fontSize:32,marginBottom:8}}>📂</div><p style={{color:T.sub,fontSize:14,margin:0}}>No strategies yet.</p><button onClick={()=>setScreen("generate")} style={{marginTop:12,padding:"9px 18px",borderRadius:9,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>Generate Now</button></div>)
+          :history.map(h=>card(<div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:14,color:T.text}}>{h.company}</div><div style={{fontSize:11,color:T.sub}}>{h.date} · {h.language}</div></div><button onClick={()=>setViewHist(h)} style={{padding:"6px 12px",borderRadius:8,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:"#a78bfa",fontWeight:600}}>View →</button></div>))}
+        </div>}
+
+        {/* TRACKER */}
+        {screen==="tracker"&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><h2 style={{fontSize:20,fontWeight:800,margin:0,color:T.text}}>👥 Tracker</h2><p style={{color:T.sub,fontSize:12,margin:"3px 0 0"}}>{clients.length} clients</p></div><button onClick={()=>setShowAddClient(v=>!v)} style={{padding:"8px 13px",borderRadius:9,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>+ Add</button></div>
+          {showAddClient&&card(<div><div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:10}}>New Client</div><div style={{display:"flex",flexDirection:"column",gap:9}}>{inp("name","Name","Client Name",newClient,setNewClient)}{inp("company","Company","Company",newClient,setNewClient)}{inp("contact","Phone/email","Contact",newClient,setNewClient)}{sel("status",Object.keys(statusColors),"Status",newClient,setNewClient)}{inp("notes","Notes","Notes",newClient,setNewClient)}</div><div style={{display:"flex",gap:7,marginTop:11}}><button onClick={()=>setShowAddClient(false)} style={{flex:1,padding:"8px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>Cancel</button><button onClick={()=>{if(newClient.name){setClients(c=>[{...newClient,id:Date.now(),date:new Date().toLocaleDateString()},...c]);setNewClient({name:"",company:"",contact:"",status:"Not Contacted",notes:""});setShowAddClient(false);}}} style={{flex:2,padding:"8px",borderRadius:8,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>Save</button></div></div>)}
+          {clients.length>0&&card(<div style={{display:"flex",justifyContent:"space-around",textAlign:"center"}}>{Object.entries(statusColors).map(([s,c])=>{const count=clients.filter(x=>x.status===s).length;return count>0&&<div key={s}><div style={{fontSize:18,fontWeight:800,color:c}}>{count}</div><div style={{fontSize:9,color:T.sub,maxWidth:55}}>{s}</div></div>;})}</div>)}
+          {clients.length===0&&!showAddClient&&card(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:30,marginBottom:8}}>👥</div><p style={{color:T.sub,fontSize:13,margin:0}}>No clients yet.</p></div>)}
+          {clients.map(c=>card(<div key={c.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div style={{flex:1}}><div style={{fontWeight:700,fontSize:14,color:T.text}}>{c.name}</div><div style={{fontSize:12,color:T.sub}}>{c.company}{c.contact?` · ${c.contact}`:""}</div>{c.notes&&<div style={{fontSize:11,color:T.sub,fontStyle:"italic",marginTop:2}}>{c.notes}</div>}</div><span style={{background:`${statusColors[c.status]}20`,color:statusColors[c.status],border:`1px solid ${statusColors[c.status]}40`,borderRadius:100,padding:"3px 9px",fontSize:10,fontWeight:700,whiteSpace:"nowrap",marginLeft:8}}>{c.status}</span></div><div style={{display:"flex",gap:4,marginTop:9,flexWrap:"wrap"}}>{Object.keys(statusColors).filter(s=>s!==c.status).map(s=><button key={s} onClick={()=>setClients(cl=>cl.map(x=>x.id===c.id?{...x,status:s}:x))} style={{padding:"2px 7px",borderRadius:5,fontSize:9,cursor:"pointer",border:`1px solid ${statusColors[s]}40`,background:`${statusColors[s]}15`,color:statusColors[s],fontWeight:700}}>{s}</button>)}<button onClick={()=>setClients(cl=>cl.filter(x=>x.id!==c.id))} style={{padding:"2px 8px",borderRadius:5,fontSize:10,cursor:"pointer",border:"1px solid rgba(220,38,38,0.3)",background:"rgba(220,38,38,0.08)",color:"#dc2626",fontWeight:600,marginLeft:"auto"}}>Remove</button></div></div>))}
+        </div>}
+
+        {/* SOCIAL */}
+        {screen==="social"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>📱 Social Posts</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>In {selectedLang.label}</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{inp("business","e.g. Studio Nook","Business",socialForm,setSocialForm)}{inp("niche","e.g. Web design","Niche",socialForm,setSocialForm)}{sel("platform",["Instagram","Facebook","LinkedIn","TikTok","Twitter/X"],"Platform",socialForm,setSocialForm)}{sel("goal",["Get more clients","Promote service","Share tip","Show portfolio","Build trust"],"Goal",socialForm,setSocialForm)}{sel("tone",["Professional","Friendly","Funny","Inspirational","Bold"],"Tone",socialForm,setSocialForm)}<AIBtn onClick={generateSocial} loading={socialLoading} disabled={!socialForm.business} label={`📱 Generate in ${selectedLang.label}`}/></div>)}<ResultBox text={socialResult} id="social" filename="posts.txt"/></div>}
+
+        {/* PRICING */}
+        {screen==="pricing"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>💰 Pricing</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>Know what to charge</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{sel("service",services,"Service",pricingForm,setPricingForm)}{inp("hours","e.g. 10","Hours",pricingForm,setPricingForm)}{sel("experience",["Beginner","Intermediate","Experienced","Expert"],"Experience",pricingForm,setPricingForm)}{inp("location","e.g. Bangkok","Market",pricingForm,setPricingForm)}{sel("projectType",["One-time","Monthly Retainer","Hourly","Package"],"Type",pricingForm,setPricingForm)}<AIBtn onClick={generatePricing} loading={pricingLoading} label={`💰 Calculate in ${selectedLang.label}`}/></div>)}<ResultBox text={pricingResult} id="pricing"/></div>}
+
+        {/* INVOICE */}
+        {screen==="invoice"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>🧾 Invoice</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>Professional invoices instantly</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{inp("yourName","Your name","Your Name",invoiceForm,setInvoiceForm)}{inp("yourEmail","your@email.com","Your Email",invoiceForm,setInvoiceForm)}{inp("clientName","Client name","Client Name",invoiceForm,setInvoiceForm)}{inp("clientEmail","client@email.com","Client Email",invoiceForm,setInvoiceForm)}{inp("service","e.g. Website Design","Service",invoiceForm,setInvoiceForm)}<div style={{display:"flex",gap:8}}>{sel("currency",["USD","THB","EUR","GBP","INR","BDT","SGD","AUD"],"Currency",invoiceForm,setInvoiceForm)}{inp("amount","e.g. 500","Amount",invoiceForm,setInvoiceForm)}</div>{inp("dueDate","e.g. 15 July 2026","Due Date",invoiceForm,setInvoiceForm)}{inp("notes","Payment notes","Notes (optional)",invoiceForm,setInvoiceForm)}<AIBtn onClick={generateInvoice} loading={invoiceLoading} disabled={!invoiceForm.yourName||!invoiceForm.clientName||!invoiceForm.amount} label={`🧾 Generate in ${selectedLang.label}`}/></div>)}<ResultBox text={invoiceResult} id="invoice" filename="invoice.txt"/></div>}
+
+        {/* PROPOSAL */}
+        {screen==="proposal"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>📄 Proposal</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>Win clients with a great proposal</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{inp("yourName","Your name","Your Name",propForm,setPropForm)}{inp("company","Your company","Company",propForm,setPropForm)}{inp("clientName","Client name","Client Name",propForm,setPropForm)}{inp("clientBusiness","e.g. Thai Bistro","Client's Business",propForm,setPropForm)}{inp("service","e.g. Website Design","Service Offered",propForm,setPropForm)}{inp("budget","e.g. $500","Budget",propForm,setPropForm)}{inp("timeline","e.g. 2 weeks","Timeline",propForm,setPropForm)}<div><label style={{fontSize:12,color:T.sub,marginBottom:4,display:"block",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>Client's Problem</label><textarea value={propForm.problem} placeholder="e.g. No website, losing clients" onChange={e=>setPropForm(o=>({...o,problem:e.target.value}))} rows={3} style={{width:"100%",padding:"10px 13px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",resize:"none",fontFamily:"inherit"}}/></div><AIBtn onClick={generateProposal} loading={propLoading} disabled={!propForm.yourName||!propForm.clientName||!propForm.service} label={`📄 Generate in ${selectedLang.label}`}/></div>)}<ResultBox text={propResult} id="proposal" filename="proposal.txt"/></div>}
+
+        {/* FOLLOWUP */}
+        {screen==="followup"&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><h2 style={{fontSize:20,fontWeight:800,margin:0,color:T.text}}>🔔 Follow-ups</h2><p style={{color:T.sub,fontSize:12,margin:"3px 0 0"}}>{followups.length} reminders</p></div><button onClick={()=>setShowAddFu(v=>!v)} style={{padding:"8px 13px",borderRadius:9,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>+ Add</button></div>
+          {showAddFu&&card(<div><div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:10}}>New Follow-up</div><div style={{display:"flex",flexDirection:"column",gap:9}}>{inp("clientName","Name","Client Name",newFu,setNewFu)}{inp("company","Company","Company",newFu,setNewFu)}{inp("contact","Phone/email","Contact",newFu,setNewFu)}{inp("lastContacted","e.g. June 20","Last Contacted",newFu,setNewFu)}{inp("followupDate","e.g. June 27","Follow-up Date",newFu,setNewFu)}{sel("reason",["Follow up on proposal","Check interest","Share portfolio","Reconnect","Other"],"Reason",newFu,setNewFu)}{inp("notes","Notes","Notes",newFu,setNewFu)}</div><div style={{display:"flex",gap:7,marginTop:11}}><button onClick={()=>setShowAddFu(false)} style={{flex:1,padding:"8px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>Cancel</button><button onClick={()=>{if(newFu.clientName){setFollowups(f=>[{...newFu,id:Date.now()},...f]);setNewFu({clientName:"",company:"",contact:"",lastContacted:"",followupDate:"",reason:"Follow up on proposal",notes:""});setShowAddFu(false);}}} style={{flex:2,padding:"8px",borderRadius:8,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>Save</button></div></div>)}
+          {followups.length===0&&!showAddFu&&card(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:30,marginBottom:8}}>🔔</div><p style={{color:T.sub,fontSize:13,margin:0}}>No follow-ups yet.</p></div>)}
+          {followups.map(fu=>card(<div key={fu.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontWeight:700,fontSize:14,color:T.text}}>{fu.clientName} · {fu.company}</div><div style={{fontSize:12,color:T.sub}}>{fu.reason}</div>{fu.followupDate&&<div style={{fontSize:12,color:"#f59e0b",fontWeight:600,marginTop:2}}>📅 {fu.followupDate}</div>}</div><button onClick={()=>setFollowups(f=>f.filter(x=>x.id!==fu.id))} style={{padding:"3px 9px",borderRadius:6,fontSize:10,cursor:"pointer",border:"1px solid rgba(220,38,38,0.3)",background:"rgba(220,38,38,0.08)",color:"#dc2626",fontWeight:600}}>Remove</button></div><button onClick={()=>generateFollowup(fu)} disabled={fuLoading&&selFu?.id===fu.id} style={{marginTop:9,width:"100%",padding:"8px",borderRadius:9,fontSize:13,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700}}>{fuLoading&&selFu?.id===fu.id?"Generating...":"✍️ Generate Message"}</button>{selFu?.id===fu.id&&fuMsg&&<div style={{marginTop:9}}><pre style={{whiteSpace:"pre-wrap",fontSize:13,color:T.mid,lineHeight:1.7,margin:"0 0 9px",fontFamily:"inherit",background:T.input,borderRadius:9,padding:11,border:`1px solid ${T.inputBorder}`}}>{fuMsg}</pre><div style={{display:"flex",gap:6}}><button onClick={()=>copyText(fuMsg,"fu")} style={{flex:1,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:copied==="fu"?"#16a34a":T.mid,fontWeight:600}}>{copied==="fu"?"✓":"📋"}</button><button onClick={()=>openWhatsApp(fuMsg)} style={{flex:2,padding:"7px",borderRadius:7,fontSize:12,cursor:"pointer",border:"none",background:"linear-gradient(135deg,#25d366,#128c7e)",color:"#fff",fontWeight:700}}>Send WhatsApp →</button></div></div>}</div>))}
+        </div>}
+
+        {/* NAMING */}
+        {screen==="naming"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>✨ Name AI</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>Find the perfect business name</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{inp("industry","e.g. Web Design","Industry",namingForm,setNamingForm)}{sel("style",["Modern","Classic","Playful","Luxury","Minimal","Bold","Local","International"],"Name Style",namingForm,setNamingForm)}{inp("keywords","e.g. gold, creative, fast","Keywords (optional)",namingForm,setNamingForm)}{inp("location","e.g. Bangkok, Global","Market",namingForm,setNamingForm)}<AIBtn onClick={generateNames} loading={namingLoading} disabled={!namingForm.industry} label={`✨ Generate Names in ${selectedLang.label}`}/></div>)}<ResultBox text={namingResult} id="naming"/></div>}
+
+        {/* COMPETITOR */}
+        {screen==="competitor"&&<div><h2 style={{fontSize:20,fontWeight:800,marginBottom:5,color:T.text}}>🔍 Competitor Analysis</h2><p style={{color:T.sub,fontSize:13,marginBottom:14}}>Beat your competition with AI</p>{card(<div style={{display:"flex",flexDirection:"column",gap:10}}>{inp("yourService","e.g. Website Design","Your Service",compForm,setCompForm)}{inp("yourLocation","e.g. Bangkok","Your Location",compForm,setCompForm)}{inp("competitor","e.g. Wix, local agencies","Competitor (optional)",compForm,setCompForm)}<AIBtn onClick={generateCompetitor} loading={compLoading} disabled={!compForm.yourService||!compForm.yourLocation} label={`🔍 Analyse in ${selectedLang.label}`}/></div>)}<ResultBox text={compResult} id="comp"/></div>}
+
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.nav,backdropFilter:"blur(20px)",borderTop:`1px solid ${T.border}`,display:"flex",padding:"7px 2px 11px",zIndex:100,overflowX:"auto"}}>
+        {TOOLS.map(s=><button key={s.id} onClick={()=>setScreen(s.id)} style={{flex:"0 0 auto",minWidth:58,display:"flex",flexDirection:"column",alignItems:"center",gap:1,padding:"5px 3px",borderRadius:9,border:"none",background:screen===s.id?(dark?"rgba(167,139,250,0.15)":"rgba(124,58,237,0.1)"):"transparent",cursor:"pointer",color:screen===s.id?"#a78bfa":T.sub,fontWeight:screen===s.id?700:400,transition:"all 0.2s"}}><span style={{fontSize:16}}>{s.icon}</span><span style={{fontSize:9}}>{s.label}</span></button>)}
+      </div>
+    </div>
+  );
+}

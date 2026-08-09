@@ -1,0 +1,406 @@
+import { useState } from "react";
+
+const PLANS = [
+  {
+    id: "starter", name: "Starter", price: 0, badge: null,
+    features: ["3 strategies/month", "WhatsApp & email messages", "Client tracker (10 clients)", "5 languages", "Dark/Light mode"],
+    color: "#6b7280"
+  },
+  {
+    id: "pro", name: "Pro", price: 9, badge: "Most Popular",
+    features: ["Unlimited strategies", "All 10 AI tools", "24 languages", "Invoice & proposal builder", "Unlimited client tracker", "Strategy history", "Priority AI speed"],
+    color: "#a78bfa"
+  },
+  {
+    id: "agency", name: "Agency", price: 29, badge: "Best Value",
+    features: ["Everything in Pro", "5 team members", "Shared client tracker", "White-label reports", "Custom branding", "Priority support"],
+    color: "#60a5fa"
+  }
+];
+
+const CURRENCIES = [
+  { code: "USD", symbol: "$", flag: "🇺🇸", rate: 1 },
+  { code: "THB", symbol: "฿", flag: "🇹🇭", rate: 35 },
+  { code: "EUR", symbol: "€", flag: "🇪🇺", rate: 0.92 },
+  { code: "GBP", symbol: "£", flag: "🇬🇧", rate: 0.79 },
+  { code: "INR", symbol: "₹", flag: "🇮🇳", rate: 83 },
+  { code: "BDT", symbol: "৳", flag: "🇧🇩", rate: 110 },
+  { code: "SGD", symbol: "S$", flag: "🇸🇬", rate: 1.35 },
+  { code: "MYR", symbol: "RM", flag: "🇲🇾", rate: 4.7 },
+  { code: "IDR", symbol: "Rp", flag: "🇮🇩", rate: 15800 },
+  { code: "JPY", symbol: "¥", flag: "🇯🇵", rate: 150 },
+  { code: "AUD", symbol: "A$", flag: "🇦🇺", rate: 1.53 },
+  { code: "CAD", symbol: "C$", flag: "🇨🇦", rate: 1.36 },
+];
+
+const PROMPTPAY_NUMBER = "0812345678"; // placeholder
+
+const DARK = {
+  bg: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+  card: "rgba(255,255,255,0.05)", border: "rgba(255,255,255,0.1)",
+  input: "rgba(255,255,255,0.07)", inputBorder: "rgba(255,255,255,0.15)",
+  text: "#fff", sub: "rgba(255,255,255,0.45)", mid: "rgba(255,255,255,0.75)",
+  surface: "rgba(255,255,255,0.04)",
+};
+const LIGHT = {
+  bg: "linear-gradient(135deg,#f0f4ff,#e8ecff,#f5f0ff)",
+  card: "rgba(255,255,255,0.92)", border: "rgba(167,139,250,0.2)",
+  input: "#fff", inputBorder: "rgba(167,139,250,0.3)",
+  text: "#1a1040", sub: "#6b7280", mid: "#374151",
+  surface: "rgba(167,139,250,0.04)",
+};
+
+export default function PaymentSystem() {
+  const [dark, setDark] = useState(true);
+  const T = dark ? DARK : LIGHT;
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [currency, setCurrency] = useState(CURRENCIES[0]);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [step, setStep] = useState("plans"); // plans | method | checkout | success
+  const [billingCycle, setBillingCycle] = useState("monthly"); // monthly | yearly
+  const [form, setForm] = useState({ name:"", email:"", card:"", expiry:"", cvv:"", paypalEmail:"" });
+  const [processing, setProcessing] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const getPrice = (plan) => {
+    if (plan.price === 0) return 0;
+    const base = billingCycle === "yearly" ? plan.price * 10 : plan.price;
+    return Math.round(base * currency.rate);
+  };
+
+  const formatPrice = (plan) => {
+    if (plan.price === 0) return "Free";
+    const p = getPrice(plan);
+    const formatted = p >= 1000 ? p.toLocaleString() : p;
+    return `${currency.symbol}${formatted}`;
+  };
+
+  const getSaving = (plan) => {
+    if (plan.price === 0) return null;
+    return Math.round(plan.price * 2 * currency.rate);
+  };
+
+  const handleSelectPlan = (plan) => {
+    if (plan.price === 0) { setStep("success"); setSelectedPlan(plan); return; }
+    setSelectedPlan(plan);
+    setStep("method");
+  };
+
+  const handlePayment = async () => {
+    setProcessing(true);
+    await new Promise(r => setTimeout(r, 2200));
+    setProcessing(false);
+    setStep("success");
+  };
+
+  const copyPromptPay = () => {
+    navigator.clipboard.writeText(PROMPTPAY_NUMBER);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const formatCard = (val) => val.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim().slice(0,19);
+  const formatExpiry = (val) => val.replace(/\D/g,"").replace(/^(.{2})(.)/,"$1/$2").slice(0,5);
+
+  const card = (children, extra={}) => (
+    <div style={{background:T.card,borderRadius:16,border:`1px solid ${T.border}`,padding:20,marginBottom:12,...extra}}>{children}</div>
+  );
+
+  const inp = (key, placeholder, label, format) => (
+    <div>
+      <label style={{fontSize:13,color:T.sub,marginBottom:5,display:"block",fontWeight:500}}>{label}</label>
+      <input value={form[key]} placeholder={placeholder}
+        onChange={e => setForm(f=>({...f,[key]: format ? format(e.target.value) : e.target.value}))}
+        style={{width:"100%",padding:"11px 14px",borderRadius:10,fontSize:14,background:T.input,border:`1px solid ${T.inputBorder}`,color:T.text,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.text,transition:"all 0.3s"}}>
+
+      {/* Header */}
+      <div style={{background:dark?"rgba(255,255,255,0.05)":"rgba(255,255,255,0.9)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.border}`,padding:"15px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>⚡</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:15,color:T.text}}>ClientAI Pro</div>
+            <div style={{fontSize:10,color:T.sub}}>Upgrade your plan</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {/* Currency picker */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setShowCurrencyPicker(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:9,background:dark?"rgba(255,255,255,0.07)":"rgba(124,58,237,0.08)",border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:13,fontWeight:600}}>
+              {currency.flag} {currency.code} <span style={{fontSize:9,opacity:0.5}}>▼</span>
+            </button>
+            {showCurrencyPicker&&(
+              <div style={{position:"absolute",right:0,top:"110%",background:dark?"#1e1b3a":"#fff",border:`1px solid ${T.border}`,borderRadius:12,padding:8,zIndex:200,width:180,maxHeight:260,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                {CURRENCIES.map(c=>(
+                  <button key={c.code} onClick={()=>{setCurrency(c);setShowCurrencyPicker(false);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:7,background:currency.code===c.code?(dark?"rgba(167,139,250,0.2)":"rgba(124,58,237,0.08)"):"transparent",border:"none",color:currency.code===c.code?"#a78bfa":T.mid,cursor:"pointer",fontSize:13,fontWeight:currency.code===c.code?700:400}}>
+                    <span>{c.flag} {c.code}</span><span style={{fontSize:12,opacity:0.6}}>{c.symbol}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 9px",borderRadius:9,background:dark?"rgba(255,255,255,0.07)":"rgba(124,58,237,0.08)",border:`1px solid ${T.border}`,color:T.text,cursor:"pointer",fontSize:14}}>{dark?"☀️":"🌙"}</button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:780,margin:"0 auto",padding:"32px 16px"}}>
+
+        {/* ===== PLANS ===== */}
+        {step==="plans"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:32}}>
+              <h1 style={{fontSize:28,fontWeight:800,margin:"0 0 10px",letterSpacing:"-0.8px",color:T.text}}>Choose your plan</h1>
+              <p style={{color:T.sub,fontSize:14,margin:"0 0 20px"}}>Start free. Upgrade anytime. Cancel anytime.</p>
+
+              {/* Billing toggle */}
+              <div style={{display:"inline-flex",background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,padding:4}}>
+                {["monthly","yearly"].map(b=>(
+                  <button key={b} onClick={()=>setBillingCycle(b)} style={{padding:"7px 20px",borderRadius:100,border:"none",background:billingCycle===b?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",color:billingCycle===b?"#fff":T.sub,fontSize:13,fontWeight:700,cursor:"pointer",transition:"all 0.2s"}}>
+                    {b==="monthly"?"Monthly":"Yearly"}{b==="yearly"&&<span style={{marginLeft:5,background:"rgba(52,211,153,0.2)",color:"#34d399",borderRadius:100,padding:"1px 7px",fontSize:11}}>Save 17%</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14}}>
+              {PLANS.map(plan=>(
+                <div key={plan.id} onClick={()=>handleSelectPlan(plan)}
+                  style={{background:T.card,borderRadius:18,border:selectedPlan?.id===plan.id?`2px solid ${plan.color}`:`1px solid ${T.border}`,padding:24,cursor:"pointer",position:"relative",transition:"all 0.2s",boxShadow:selectedPlan?.id===plan.id?`0 4px 24px ${plan.color}30`:dark?"none":"0 2px 12px rgba(124,58,237,0.06)"}}>
+                  {plan.badge&&<div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontSize:11,fontWeight:700,padding:"3px 12px",borderRadius:100,whiteSpace:"nowrap"}}>{plan.badge}</div>}
+                  <div style={{fontWeight:700,fontSize:12,textTransform:"uppercase",letterSpacing:1,color:plan.color,marginBottom:8}}>{plan.name}</div>
+                  <div style={{fontWeight:800,fontSize:36,color:T.text,marginBottom:2}}>{formatPrice(plan)}</div>
+                  {plan.price>0&&<div style={{fontSize:12,color:T.sub,marginBottom:4}}>per {billingCycle==="monthly"?"month":"year"}</div>}
+                  {billingCycle==="yearly"&&plan.price>0&&<div style={{fontSize:12,color:"#34d399",marginBottom:4}}>You save {currency.symbol}{getSaving(plan)}/year</div>}
+                  <div style={{borderTop:`1px solid ${T.border}`,margin:"14px 0"}}/>
+                  {plan.features.map(f=>(
+                    <div key={f} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8}}>
+                      <span style={{color:"#34d399",fontWeight:700,fontSize:13,flexShrink:0}}>✓</span>
+                      <span style={{fontSize:13,color:T.mid,lineHeight:1.4}}>{f}</span>
+                    </div>
+                  ))}
+                  <button style={{marginTop:16,width:"100%",padding:"11px",borderRadius:11,border:"none",background:plan.price===0?"transparent":plan.id==="pro"?"linear-gradient(135deg,#a78bfa,#60a5fa)":`${plan.color}20`,color:plan.price===0?T.sub:plan.id==="pro"?"#fff":plan.color,fontWeight:700,fontSize:14,cursor:"pointer",border:plan.price===0?`1px solid ${T.border}`:"none",transition:"all 0.2s"}}>
+                    {plan.price===0?"Get Started Free":plan.id==="agency"?"Contact Sales →":`Get ${plan.name} →`}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{textAlign:"center",marginTop:24}}>
+              <p style={{fontSize:13,color:T.sub}}>🔒 Secure payment · SSL encrypted · Cancel anytime</p>
+              <div style={{display:"flex",justifyContent:"center",gap:16,marginTop:12,flexWrap:"wrap"}}>
+                {["💳 Visa / Mastercard","🅿️ PayPal","🇹🇭 PromptPay","🏦 Bank Transfer"].map(m=>(
+                  <span key={m} style={{fontSize:12,color:T.sub,background:T.surface,border:`1px solid ${T.border}`,borderRadius:100,padding:"4px 12px"}}>{m}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PAYMENT METHOD ===== */}
+        {step==="method"&&selectedPlan&&(
+          <div>
+            <button onClick={()=>setStep("plans")} style={{marginBottom:18,padding:"7px 13px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>← Back to Plans</button>
+
+            {/* Order summary */}
+            {card(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:T.text}}>ClientAI {selectedPlan.name}</div>
+                <div style={{fontSize:13,color:T.sub}}>{billingCycle==="monthly"?"Billed monthly":"Billed yearly"} · {currency.code}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontWeight:800,fontSize:22,color:T.text}}>{formatPrice(selectedPlan)}</div>
+                <div style={{fontSize:12,color:T.sub}}>/{billingCycle==="monthly"?"mo":"yr"}</div>
+              </div>
+            </div>)}
+
+            <h2 style={{fontSize:18,fontWeight:700,marginBottom:14,color:T.text}}>Choose payment method</h2>
+
+            <div style={{display:"grid",gap:10,marginBottom:20}}>
+              {[
+                {id:"card", icon:"💳", title:"Credit / Debit Card", sub:"Visa, Mastercard, Amex — worldwide"},
+                {id:"paypal", icon:"🅿️", title:"PayPal", sub:"Pay with your PayPal balance or card"},
+                {id:"promptpay", icon:"🇹🇭", title:"PromptPay", sub:"Scan QR code — Thailand only"},
+                {id:"bank", icon:"🏦", title:"Bank Transfer", sub:"Manual transfer — any bank worldwide"},
+              ].map(m=>(
+                <div key={m.id} onClick={()=>setPaymentMethod(m.id)}
+                  style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:13,border:paymentMethod===m.id?"2px solid #a78bfa":`1px solid ${T.border}`,background:paymentMethod===m.id?(dark?"rgba(167,139,250,0.1)":"rgba(124,58,237,0.06)"):T.card,cursor:"pointer",transition:"all 0.2s"}}>
+                  <span style={{fontSize:26}}>{m.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:14,color:T.text}}>{m.title}</div>
+                    <div style={{fontSize:12,color:T.sub}}>{m.sub}</div>
+                  </div>
+                  <div style={{width:20,height:20,borderRadius:"50%",border:paymentMethod===m.id?"none":`2px solid ${T.border}`,background:paymentMethod===m.id?"linear-gradient(135deg,#a78bfa,#60a5fa)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {paymentMethod===m.id&&<span style={{color:"#fff",fontSize:11}}>✓</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {paymentMethod&&(
+              <button onClick={()=>setStep("checkout")}
+                style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer"}}>
+                Continue to {paymentMethod==="card"?"Card Details":paymentMethod==="paypal"?"PayPal":paymentMethod==="promptpay"?"PromptPay QR":"Bank Details"} →
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ===== CHECKOUT ===== */}
+        {step==="checkout"&&selectedPlan&&(
+          <div>
+            <button onClick={()=>setStep("method")} style={{marginBottom:18,padding:"7px 13px",borderRadius:8,fontSize:13,cursor:"pointer",border:`1px solid ${T.border}`,background:T.card,color:T.mid,fontWeight:600}}>← Back</button>
+
+            {/* Summary bar */}
+            {card(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:700,color:T.text}}>ClientAI {selectedPlan.name}</div><div style={{fontSize:12,color:T.sub}}>{billingCycle} · {currency.code}</div></div>
+              <div style={{fontWeight:800,fontSize:20,color:T.text}}>{formatPrice(selectedPlan)}</div>
+            </div>)}
+
+            {/* CARD */}
+            {paymentMethod==="card"&&card(
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>💳 Card Details</div>
+                <div style={{display:"flex",flexDirection:"column",gap:11}}>
+                  {inp("name","John Smith","Full Name")}
+                  {inp("email","john@email.com","Email")}
+                  {inp("card","1234 5678 9012 3456","Card Number", formatCard)}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {inp("expiry","MM/YY","Expiry Date", formatExpiry)}
+                    {inp("cvv","123","CVV")}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:14,marginBottom:16}}>
+                  <span style={{fontSize:14}}>🔒</span>
+                  <span style={{fontSize:12,color:T.sub}}>Your card info is encrypted with 256-bit SSL. We never store card details.</span>
+                </div>
+                <button onClick={handlePayment} disabled={processing||!form.name||!form.email||!form.card||!form.expiry||!form.cvv}
+                  style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:(!form.name||!form.email||!form.card)?dark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.07)":"linear-gradient(135deg,#a78bfa,#60a5fa)",color:(!form.name||!form.email||!form.card)?dark?"rgba(255,255,255,0.3)":"rgba(0,0,0,0.2)":"#fff",fontWeight:700,fontSize:15,cursor:"pointer",transition:"all 0.3s"}}>
+                  {processing?"Processing payment...":"💳 Pay "+formatPrice(selectedPlan)+" Now"}
+                </button>
+              </div>
+            )}
+
+            {/* PAYPAL */}
+            {paymentMethod==="paypal"&&card(
+              <div style={{textAlign:"center",padding:"10px 0"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🅿️</div>
+                <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:8}}>Pay with PayPal</div>
+                <p style={{fontSize:14,color:T.sub,marginBottom:20}}>You'll be redirected to PayPal to complete your payment of <strong style={{color:T.text}}>{formatPrice(selectedPlan)}</strong>.</p>
+                {inp("paypalEmail","your@paypal.com","Your PayPal Email")}
+                <button onClick={handlePayment} disabled={processing||!form.paypalEmail}
+                  style={{marginTop:14,width:"100%",padding:"14px",borderRadius:12,border:"none",background:!form.paypalEmail?dark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.07)":"#0070ba",color:!form.paypalEmail?dark?"rgba(255,255,255,0.3)":"rgba(0,0,0,0.2)":"#fff",fontWeight:700,fontSize:15,cursor:"pointer"}}>
+                  {processing?"Connecting to PayPal...":"🅿️ Continue to PayPal"}
+                </button>
+              </div>
+            )}
+
+            {/* PROMPTPAY */}
+            {paymentMethod==="promptpay"&&card(
+              <div style={{textAlign:"center",padding:"10px 0"}}>
+                <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:4}}>🇹🇭 PromptPay QR Code</div>
+                <p style={{fontSize:13,color:T.sub,marginBottom:20}}>Scan with any Thai banking app to pay <strong style={{color:T.text}}>{currency.code==="THB"?formatPrice(selectedPlan):`฿${Math.round(getPrice(selectedPlan)*35)}`}</strong></p>
+
+                {/* QR placeholder */}
+                <div style={{width:180,height:180,margin:"0 auto 16px",background:dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.05)",borderRadius:16,border:`2px dashed ${T.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
+                  <div style={{fontSize:40}}>📱</div>
+                  <div style={{fontSize:11,color:T.sub,textAlign:"center",padding:"0 12px"}}>QR Code appears here<br/>after integration</div>
+                </div>
+
+                <div style={{background:T.surface,borderRadius:11,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",border:`1px solid ${T.border}`}}>
+                  <div>
+                    <div style={{fontSize:11,color:T.sub}}>PromptPay Number</div>
+                    <div style={{fontWeight:700,fontSize:16,color:T.text,letterSpacing:2}}>{PROMPTPAY_NUMBER}</div>
+                  </div>
+                  <button onClick={copyPromptPay} style={{padding:"7px 14px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,color:copied?"#34d399":T.mid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{copied?"✓ Copied":"Copy"}</button>
+                </div>
+
+                <div style={{textAlign:"left",marginBottom:16}}>
+                  {["Open your banking app","Scan QR or enter PromptPay number","Enter amount: "+( currency.code==="THB"?formatPrice(selectedPlan):`฿${Math.round(selectedPlan.price*35)}`),"Take screenshot of receipt","Send receipt to confirm payment"].map((s,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>
+                      <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{i+1}</div>
+                      <span style={{fontSize:13,color:T.mid,paddingTop:1}}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={handlePayment} disabled={processing}
+                  style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  {processing?"Verifying...":"✅ I've Sent the Payment"}
+                </button>
+              </div>
+            )}
+
+            {/* BANK TRANSFER */}
+            {paymentMethod==="bank"&&card(
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>🏦 Bank Transfer Details</div>
+                {[
+                  ["Bank Name","Bangkok Bank / Kasikorn Bank"],
+                  ["Account Name","ClientAI Pro Ltd"],
+                  ["Account Number","123-4-56789-0"],
+                  ["Amount",formatPrice(selectedPlan)+" ("+currency.code+")"],
+                  ["Reference","Your email address"],
+                ].map(([label,val])=>(
+                  <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
+                    <span style={{fontSize:13,color:T.sub}}>{label}</span>
+                    <span style={{fontSize:13,fontWeight:700,color:T.text,textAlign:"right",maxWidth:"60%"}}>{val}</span>
+                  </div>
+                ))}
+                <div style={{marginTop:14,marginBottom:16}}>
+                  {inp("email","your@email.com","Your Email (for confirmation)")}
+                </div>
+                <button onClick={handlePayment} disabled={processing||!form.email}
+                  style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:!form.email?dark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.07)":"linear-gradient(135deg,#a78bfa,#60a5fa)",color:!form.email?dark?"rgba(255,255,255,0.3)":"rgba(0,0,0,0.2)":"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  {processing?"Processing...":"✅ I've Made the Transfer"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== SUCCESS ===== */}
+        {step==="success"&&(
+          <div style={{textAlign:"center",padding:"60px 20px"}}>
+            <div style={{fontSize:64,marginBottom:20}}>🎉</div>
+            <h1 style={{fontSize:28,fontWeight:800,margin:"0 0 10px",color:T.text}}>
+              {selectedPlan?.price===0?"You're all set!":"Payment successful!"}
+            </h1>
+            <p style={{fontSize:16,color:T.sub,marginBottom:8}}>
+              {selectedPlan?.price===0
+                ?"Welcome to ClientAI! Your free plan is active."
+                :`Welcome to ClientAI ${selectedPlan?.name}! Your plan is now active.`}
+            </p>
+            {form.email&&<p style={{fontSize:13,color:T.sub,marginBottom:32}}>Confirmation sent to <strong style={{color:T.text}}>{form.email}</strong></p>}
+
+            {card(<div>
+              <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>Your plan includes:</div>
+              {selectedPlan?.features.map(f=>(
+                <div key={f} style={{display:"flex",alignItems:"center",gap:9,marginBottom:9}}>
+                  <span style={{color:"#34d399",fontWeight:700}}>✓</span>
+                  <span style={{fontSize:14,color:T.mid}}>{f}</span>
+                </div>
+              ))}
+            </div>)}
+
+            <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
+              <button onClick={()=>{setStep("plans");setSelectedPlan(null);setPaymentMethod(null);setForm({name:"",email:"",card:"",expiry:"",cvv:"",paypalEmail:""});}}
+                style={{padding:"12px 24px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                ← View Plans
+              </button>
+              <button onClick={()=>window.location.reload()}
+                style={{padding:"12px 24px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#a78bfa,#60a5fa)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                ⚡ Open ClientAI Pro →
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
