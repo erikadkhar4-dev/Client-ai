@@ -53,9 +53,12 @@ const LIGHT = {
   accent:"#7c3aed",accentAlt:"#2563eb",navBg:"rgba(240,244,255,0.97)",navBorder:"rgba(167,139,250,0.2)",
 };
 
-const SCREENS = [
+
+  const SCREENS = [
+  {id:"dashboard",icon:"🏠",label:"Dashboard"},
   {id:"generate",icon:"⚡",label:"Generate"},
   {id:"history",icon:"📂",label:"History"},
+  
   {id:"tracker",icon:"👥",label:"Tracker"},
   {id:"social",icon:"📱",label:"Social"},
   {id:"pricing",icon:"💰",label:"Pricing"},
@@ -71,7 +74,7 @@ const statusColors = {"Not Contacted":"#6b7280","Contacted":"#2563eb","Intereste
 export default function ClientFinderAI() {
   const [dark, setDark] = useState(true);
   const T = dark ? DARK : LIGHT;
-  const [screen, setScreen] = useState("generate");
+  const [screen, setScreen] = useState("dashboard");
   const [showNav, setShowNav] = useState(false);
   const [step, setStep] = useState(0);
   const [language, setLanguage] = useState("English");
