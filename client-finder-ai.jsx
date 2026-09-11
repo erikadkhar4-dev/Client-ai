@@ -335,7 +335,7 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
         </div>
       )}
 
-    </div>div style={{maxWidth:680,margin:"0 auto",padding:"20px 15px"}}>
+    <div style={{maxWidth:680,margin:"0 auto",padding:"20px 15px"}}>
 
   {/* ===== DASHBOARD ===== */}
   {screen==="dashboard"&&(
