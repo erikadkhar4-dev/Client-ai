@@ -335,10 +335,102 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
         </div>
       )}
 
-      <div style={{maxWidth:680,margin:"0 auto",padding:"20px 15px"}}>
+    div style={{maxWidth:680,margin:"0 auto",padding:"20px 15px"}}>
 
-        {/* ===== GENERATE ===== */}
-        {screen==="generate"&&(
+  {/* ===== DASHBOARD ===== */}
+  {screen==="dashboard"&&(
+    <div>
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,margin:"0 0 6px",color:T.text}}>
+          🏠 Dashboard
+        </h1>
+        <p style={{color:T.textSub,fontSize:13,margin:0}}>
+          Welcome to ClientAI — your client acquisition workspace
+        </p>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:14}}>
+        {[
+          ["👥","Clients",clients.length],
+          ["📂","Strategies",history.length],
+          ["🔔","Follow-ups",followups.length],
+          ["🤖","AI Tools",10]
+        ].map(([icon,label,value])=>(
+          <div key={label} style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:13,padding:16}}>
+            <div style={{fontSize:22,marginBottom:7}}>{icon}</div>
+            <div style={{fontSize:22,fontWeight:800,color:T.text}}>{value}</div>
+            <div style={{fontSize:12,color:T.textSub,marginTop:2}}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:13,padding:16,marginBottom:11}}>
+        <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:12}}>
+          ⚡ Quick Actions
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+          {[
+            ["⚡","Generate Strategy","generate"],
+            ["👥","Add / Track Clients","tracker"],
+            ["📱","Create Social Posts","social"],
+            ["💰","Check Pricing","pricing"],
+            ["📄","Create Proposal","proposal"],
+            ["🔔","Follow-up","followup"]
+          ].map(([icon,label,id])=>(
+            <button
+              key={id}
+              onClick={()=>setScreen(id)}
+              style={{
+                padding:"11px 8px",
+                borderRadius:9,
+                border:`1px solid ${T.btnBorder}`,
+                background:T.btnBg,
+                color:T.text,
+                cursor:"pointer",
+                fontSize:12,
+                fontWeight:600
+              }}
+            >
+              <div style={{fontSize:18,marginBottom:4}}>{icon}</div>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:13,padding:16}}>
+        <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:10}}>
+          🚀 Your AI Toolkit
+        </div>
+        <p style={{fontSize:13,color:T.textSub,lineHeight:1.6,margin:0}}>
+          Generate client strategies, manage leads, create social content,
+          calculate pricing, build proposals and invoices, and follow up with clients.
+        </p>
+
+        <button
+          onClick={()=>setShowNav(true)}
+          style={{
+            marginTop:12,
+            width:"100%",
+            padding:"10px",
+            borderRadius:9,
+            border:"none",
+            background:"linear-gradient(135deg,#a78bfa,#60a5fa)",
+            color:"#fff",
+            cursor:"pointer",
+            fontWeight:700
+          }}
+        >
+          🧰 View All Tools
+        </button>
+      </div>
+    </div>
+  )}
+
+  {/* ===== GENERATE ===== */}
+  {screen==="generate"&&(
+      
           <div>
             {step===0&&(<div>
               <div style={{textAlign:"center",marginBottom:22}}>
