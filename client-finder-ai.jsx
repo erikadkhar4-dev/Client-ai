@@ -138,11 +138,30 @@ export default function ClientFinderAI() {
     return{whatsapp,emails};
   };
 
-  const aiCall = async (prompt, maxTokens=1200) => {
-    const res = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:maxTokens,messages:[{role:"user",content:prompt}]})});
-    const data = await res.json();
-    return data.content?.map(b=>b.text||"").join("\n")||"No response.";
-  };
+  const aiCall = async (prompt, maxTokens = 1200) => {
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      prompt,
+      maxTokens
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.error || "AI request failed");
+  }
+
+  return data.text || "No response.";
+};
+    
+    
+    
+  
 
   const generateStrategy = async () => {
     setLoading(true); setStep(2);
