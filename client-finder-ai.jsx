@@ -151,13 +151,32 @@ export default function ClientFinderAI() {
   });
 
   const data = await res.json();
+const aiCall = async (prompt, maxTokens = 1200) => {
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      prompt,
+      maxTokens
+    })
+  });
+
+  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data?.error || "AI request failed");
+    throw new Error(data.error || "AI request failed");
   }
 
   return data.text || "No response.";
 };
+  
+  
+  
+
+  
+
     
     
     
