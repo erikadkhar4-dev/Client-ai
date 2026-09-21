@@ -138,19 +138,16 @@ export default function ClientFinderAI() {
     return{whatsapp,emails};
   };
 
-  const aiCall = async (prompt, maxTokens = 1200) => {
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      prompt,
-      maxTokens
-    })
-  });
+  
 
-  const data = await res.json();
+      
+    
+
+    
+    
+    
+
+
 const aiCall = async (prompt, maxTokens = 1200) => {
   const res = await fetch("/api/ai", {
     method: "POST",
