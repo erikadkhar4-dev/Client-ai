@@ -1388,3 +1388,513 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
               borderRadius:9,
               border:"none",
    
+{showLangPicker&&(
+              <div
+                style={{
+                  position:"absolute",
+                  right:0,
+                  top:"110%",
+                  background:T.dropBg,
+                  border:`1px solid ${T.dropBorder}`,
+                  borderRadius:12,
+                  padding:7,
+                  zIndex:200,
+                  width:185,
+                  maxHeight:270,
+                  overflowY:"auto",
+                  boxShadow:"0 8px 30px rgba(0,0,0,0.25)"
+                }}
+              >
+                {LANGUAGES.map(l=>(
+                  <button
+                    key={l.code}
+                    onClick={()=>{
+                      setLanguage(l.code);
+                      setShowLangPicker(false);
+                    }}
+                    style={{
+                      width:"100%",
+                      display:"flex",
+                      alignItems:"center",
+                      gap:9,
+                      padding:"8px 9px",
+                      borderRadius:8,
+                      border:"none",
+                      background:l.code===language?T.tabBg:"transparent",
+                      color:T.text,
+                      cursor:"pointer",
+                      textAlign:"left",
+                      fontSize:12
+                    }}
+                  >
+                    <span style={{fontSize:16}}>{l.flag}</span>
+                    <span>{l.label}</span>
+                    {l.code===language&&(
+                      <span style={{marginLeft:"auto",color:T.accent}}>✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div
+        style={{
+          position:"sticky",
+          top:59,
+          zIndex:90,
+          background:T.navBg,
+          backdropFilter:"blur(15px)",
+          borderBottom:`1px solid ${T.navBorder}`,
+          overflowX:"auto"
+        }}
+      >
+        <div
+          style={{
+            display:"flex",
+            gap:4,
+            padding:"7px 10px",
+            minWidth:"max-content"
+          }}
+        >
+          {SCREENS.map(s=>(
+            <button
+              key={s.id}
+              onClick={()=>{
+                setScreen(s.id);
+                setShowNav(false);
+              }}
+              style={{
+                display:"flex",
+                alignItems:"center",
+                gap:5,
+                padding:"7px 10px",
+                borderRadius:8,
+                border:"none",
+                background:screen===s.id?T.tabBg:"transparent",
+                color:screen===s.id?T.accent:T.textSub,
+                cursor:"pointer",
+                fontSize:11,
+                fontWeight:screen===s.id?700:500,
+                whiteSpace:"nowrap"
+              }}
+            >
+              <span>{s.icon}</span>
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main content */}
+      <main style={{maxWidth:900,margin:"0 auto",padding:"20px 14px"}}>
+
+        {/* DASHBOARD */}
+        {screen==="dashboard"&&(
+          <>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:7}}>
+                AI-POWERED CLIENT ACQUISITION
+              </div>
+              <h1 style={{fontSize:"clamp(28px,7vw,44px)",lineHeight:1.08,margin:"0 0 10px",letterSpacing:"-1.5px"}}>
+                Find clients with AI.
+              </h1>
+              <p style={{color:T.textSub,fontSize:14,lineHeight:1.7,maxWidth:650}}>
+                Build your outreach strategy, create personalized messages,
+                manage leads, and turn prospects into customers — all from one place.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display:"grid",
+                gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
+                gap:10,
+                marginBottom:18
+              }}
+            >
+              {[
+                ["⚡","AI Strategy","Create a complete client acquisition plan."],
+                ["👥","Client Tracker","Organize and follow your prospects."],
+                ["📱","Social AI","Create social media content."],
+                ["📄","Proposals","Prepare professional proposals."]
+              ].map(([icon,title,desc])=>(
+                <div key={title}>
+                  {card(
+                    <>
+                      <div style={{fontSize:25,marginBottom:8}}>{icon}</div>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:5}}>{title}</div>
+                      <div style={{fontSize:11,color:T.textSub,lineHeight:1.5}}>{desc}</div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {card(
+              <>
+                <div style={{fontSize:18,fontWeight:700,marginBottom:5}}>
+                  Start finding clients
+                </div>
+                <div style={{fontSize:12,color:T.textSub,marginBottom:13}}>
+                  Tell ClientAI about your business and let AI build your outreach plan.
+                </div>
+                <button
+                  onClick={()=>setScreen("generate")}
+                  style={{
+                    width:"100%",
+                    padding:"12px",
+                    borderRadius:10,
+                    border:"none",
+                    background:"linear-gradient(135deg,#a78bfa,#60a5fa)",
+                    color:"#fff",
+                    fontWeight:700,
+                    cursor:"pointer"
+                  }}
+                >
+                  ⚡ Generate Client Strategy
+                </button>
+              </>
+            )}
+
+            {card(
+              <>
+                <div style={{fontWeight:700,fontSize:16,marginBottom:12}}>
+                  Your ClientAI workspace
+                </div>
+
+                <div style={{display:"grid",gap:8}}>
+                  {SCREENS.slice(1).map(s=>(
+                    <button
+                      key={s.id}
+                      onClick={()=>setScreen(s.id)}
+                      style={{
+                        display:"flex",
+                        alignItems:"center",
+                        gap:10,
+                        padding:"10px 11px",
+                        borderRadius:9,
+                        border:`1px solid ${T.cardBorder}`,
+                        background:T.pillBg,
+                        color:T.text,
+                        cursor:"pointer",
+                        textAlign:"left"
+                      }}
+                    >
+                      <span style={{fontSize:18}}>{s.icon}</span>
+                      <span style={{fontSize:13,fontWeight:600}}>{s.label}</span>
+                      <span style={{marginLeft:"auto",color:T.textSub}}>›</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* GENERATE */}
+        {screen==="generate"&&(
+          <>
+            <div style={{marginBottom:15}}>
+              <h2 style={{fontSize:24,margin:"0 0 6px"}}>⚡ AI Strategy Generator</h2>
+              <p style={{fontSize:12,color:T.textSub}}>
+                Create a personalized client acquisition strategy.
+              </p>
+            </div>
+
+            {step===0&&(
+              <>
+                {card(
+                  <>
+                    <div style={{fontWeight:700,marginBottom:13}}>About you</div>
+
+                    <div style={{display:"grid",gap:11}}>
+                      {inp("name","Your name","Name",form,setForm)}
+                      {inp("company","Your business name","Company",form,setForm)}
+                      {inp("phone","+91...","Phone",form,setForm)}
+                      {inp("email","you@example.com","Email",form,setForm,"email")}
+                      {sel("industry",industries,"Industry",form,setForm)}
+                      {inp("budget","Example: $500/month","Budget",form,setForm)}
+                    </div>
+                  </>
+                )}
+
+                {step===0&&card(
+                  <>
+                    <div style={{fontWeight:700,marginBottom:8}}>Services you offer</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {services.map(s=>pill(
+                        s,
+                        form.offering.includes(s),
+                        ()=>toggle("offering",s)
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {step===0&&card(
+                  <>
+                    <div style={{fontWeight:700,marginBottom:8}}>Services you don't want</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {services.map(s=>pill(
+                        s,
+                        form.notWanting.includes(s),
+                        ()=>toggle("notWanting",s)
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {step===0&&card(
+                  <>
+                    {inp("targetLocation","Example: India, Spain, USA","Target client location",form,setForm)}
+                    <div style={{height:11}} />
+                    {inp("targetIndustry","Example: Restaurants","Target client industry",form,setForm)}
+                    <div style={{height:11}} />
+                    {inp("goal","Example: Get 5 new clients","Main goal",form,setForm)}
+                  </>
+                )}
+
+                {step===0&&(
+                  <AIBtn
+                    label="⚡ Generate My Strategy"
+                    onClick={generateStrategy}
+                    disabled={!form.name||!form.industry||!form.targetLocation||!form.targetIndustry}
+                    loading={loading}
+                  />
+                )}
+              </>
+            )}
+
+            {step===2&&(
+              <>
+                {card(
+                  <>
+                    <div style={{fontWeight:700,fontSize:16,marginBottom:5}}>
+                      {loading?"Creating your strategy...":"Your strategy"}
+                    </div>
+                    <div style={{fontSize:12,color:T.textSub}}>
+                      {loading
+                        ?"AI is preparing your client acquisition plan."
+                        :"Your personalized plan is ready."}
+                    </div>
+                  </>
+                )}
+
+                {loading&&card(
+                  <div style={{textAlign:"center",padding:30,color:T.textSub}}>
+                    <div style={{fontSize:30,marginBottom:10}}>⚡</div>
+                    Generating...
+                  </div>
+                )}
+
+                {!loading&&result&&(
+                  <>
+                    {card(
+                      <>
+                        <div style={{display:"flex",gap:7,marginBottom:12}}>
+                          {[
+                            ["strategy","📋 Strategy"],
+                            ["messages","💬 Messages"],
+                            ["emails","✉️ Emails"]
+                          ].map(([id,label])=>(
+                            <button
+                              key={id}
+                              onClick={()=>setActiveTab(id)}
+                              style={{
+                                flex:1,
+                                padding:"8px 5px",
+                                borderRadius:8,
+                                border:`1px solid ${T.btnBorder}`,
+                                background:activeTab===id?T.tabBg:"transparent",
+                                color:activeTab===id?T.accent:T.textSub,
+                                cursor:"pointer",
+                                fontSize:11,
+                                fontWeight:600
+                              }}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {activeTab==="strategy"&&(
+                          <pre style={{
+                            whiteSpace:"pre-wrap",
+                            fontFamily:"inherit",
+                            fontSize:13,
+                            lineHeight:1.8,
+                            color:T.textMid,
+                            margin:0
+                          }}>
+                            {result}
+                          </pre>
+                        )}
+
+                        {activeTab==="messages"&&(
+                          <div style={{display:"grid",gap:10}}>
+                            {parsed.whatsapp.length>0
+                              ?parsed.whatsapp.map((m,i)=>(
+                                <div key={i}>
+                                  <div style={{
+                                    fontSize:12,
+                                    color:T.accent,
+                                    fontWeight:700,
+                                    marginBottom:5
+                                  }}>
+                                    {m.label}
+                                  </div>
+                                  <div style={{
+                                    background:T.pillBg,
+                                    borderRadius:9,
+                                    padding:10,
+                                    fontSize:13,
+                                    lineHeight:1.6
+                                  }}>
+                                    {m.body.join(" ")}
+                                  </div>
+                                  <div style={{display:"flex",gap:6,marginTop:6}}>
+                                    <button
+                                      onClick={()=>copyText(m.body.join(" "),`wa-${i}`)}
+                                      style={{
+                                        flex:1,
+                                        padding:8,
+                                        borderRadius:8,
+                                        border:`1px solid ${T.btnBorder}`,
+                                        background:T.btnBg,
+                                        color:T.text,
+                                        cursor:"pointer",
+                                        fontSize:11
+                                      }}
+                                    >
+                                      {copied===`wa-${i}`?"✓ Copied":"📋 Copy"}
+                                    </button>
+                                    <button
+                                      onClick={()=>openWhatsApp(m.body.join(" "))}
+                                      style={{
+                                        flex:1,
+                                        padding:8,
+                                        borderRadius:8,
+                                        border:"none",
+                                        background:"#25D366",
+                                        color:"#fff",
+                                        cursor:"pointer",
+                                        fontSize:11,
+                                        fontWeight:600
+                                      }}
+                                    >
+                                      WhatsApp
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                              :<div style={{fontSize:13,color:T.textSub}}>Messages are included in the Strategy tab.</div>
+                            }
+                          </div>
+                        )}
+
+                        {activeTab==="emails"&&(
+                          <div style={{display:"grid",gap:10}}>
+                            {parsed.emails.length>0
+                              ?parsed.emails.map((m,i)=>(
+                                <div key={i}>
+                                  <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:5}}>
+                                    Subject: {m.subject}
+                                  </div>
+                                  <div style={{
+                                    background:T.pillBg,
+                                    borderRadius:9,
+                                    padding:10,
+                                    fontSize:13,
+                                    lineHeight:1.6
+                                  }}>
+                                    {m.body.join(" ")}
+                                  </div>
+                                  <button
+                                    onClick={()=>openEmail(m.subject,m.body.join(" "))}
+                                    style={{
+                                      width:"100%",
+                                      marginTop:6,
+                                      padding:8,
+                                      borderRadius:8,
+                                      border:`1px solid ${T.btnBorder}`,
+                                      background:T.btnBg,
+                                      color:T.text,
+                                      cursor:"pointer",
+                                      fontSize:11
+                                    }}
+                                  >
+                                    ✉️ Open Email
+                                  </button>
+                                </div>
+                              ))
+                              :<div style={{fontSize:13,color:T.textSub}}>Emails are included in the Strategy tab.</div>
+                            }
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div style={{display:"flex",gap:7}}>
+                      <button
+                        onClick={()=>copyText(result,"strategy")}
+                        style={{
+                          flex:1,
+                          padding:9,
+                          borderRadius:9,
+                          border:`1px solid ${T.btnBorder}`,
+                          background:T.btnBg,
+                          color:T.text,
+                          cursor:"pointer",
+                          fontWeight:600
+                        }}
+                      >
+                        {copied==="strategy"?"✓ Copied!":"📋 Copy All"}
+                      </button>
+
+                      <button
+                        onClick={()=>downloadFile(result,"clientai-strategy.txt")}
+                        style={{
+                          flex:1,
+                          padding:9,
+                          borderRadius:9,
+                          border:`1px solid ${T.btnBorder}`,
+                          background:T.btnBg,
+                          color:T.text,
+                          cursor:"pointer",
+                          fontWeight:600
+                        }}
+                      >
+                        📄 Download
+                      </button>
+
+                      <button
+                        onClick={reset}
+                        style={{
+                          flex:1,
+                          padding:9,
+                          borderRadius:9,
+                          border:`1px solid ${T.btnBorder}`,
+                          background:T.btnBg,
+                          color:T.text,
+                          cursor:"pointer",
+                          fontWeight:600
+                        }}
+                      >
+                        New
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* HISTORY */}
+        {screen==="history"&&(
+          <>
+            <h2 style={{fontSize
