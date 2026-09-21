@@ -1387,55 +1387,55 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
               padding:10,
               borderRadius:9,
               border:"none",
-   
 {showLangPicker&&(
-              <div
-                style={{
-                  position:"absolute",
-                  right:0,
-                  top:"110%",
-                  background:T.dropBg,
-                  border:`1px solid ${T.dropBorder}`,
-                  borderRadius:12,
-                  padding:7,
-                  zIndex:200,
-                  width:185,
-                  maxHeight:270,
-                  overflowY:"auto",
-                  boxShadow:"0 8px 30px rgba(0,0,0,0.25)"
-                }}
-              >
-                {LANGUAGES.map(l=>(
-                  <button
-                    key={l.code}
-                    onClick={()=>{
-                      setLanguage(l.code);
-                      setShowLangPicker(false);
-                    }}
-                    style={{
-                      width:"100%",
-                      display:"flex",
-                      alignItems:"center",
-                      gap:9,
-                      padding:"8px 9px",
-                      borderRadius:8,
-                      border:"none",
-                      background:l.code===language?T.tabBg:"transparent",
-                      color:T.text,
-                      cursor:"pointer",
-                      textAlign:"left",
-                      fontSize:12
-                    }}
-                  >
-                    <span style={{fontSize:16}}>{l.flag}</span>
-                    <span>{l.label}</span>
-                    {l.code===language&&(
-                      <span style={{marginLeft:"auto",color:T.accent}}>✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+  <div
+    style={{
+      position:"absolute",
+      right:0,
+      top:"110%",
+      background:T.dropBg,
+      border:`1px solid ${T.dropBorder}`,
+      borderRadius:12,
+      padding:7,
+      zIndex:200,
+      width:185,
+      maxHeight:270,
+      overflowY:"auto",
+      boxShadow:"0 8px 30px rgba(0,0,0,0.25)"
+    }}
+  >
+    {LANGUAGES.map(l=>(
+      <button
+        key={l.code}
+        onClick={()=>{
+          setLanguage(l.code);
+          setShowLangPicker(false);
+        }}
+        style={{
+          width:"100%",
+          display:"flex",
+          alignItems:"center",
+          gap:9,
+          padding:"8px 9px",
+          borderRadius:8,
+          border:"none",
+          background:l.code===language?T.tabBg:"transparent",
+          color:T.text,
+          cursor:"pointer",
+          textAlign:"left",
+          fontSize:12
+        }}
+      >
+        <span style={{fontSize:16}}>{l.flag}</span>
+        <span>{l.label}</span>
+        {l.code===language&&(
+          <span style={{marginLeft:"auto",color:T.accent}}>✓</span>
+        )}
+      </button>
+    ))}
+  </div>
+)}
+
           </div>
         </div>
       </div>
@@ -1499,10 +1499,26 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
               <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:7}}>
                 AI-POWERED CLIENT ACQUISITION
               </div>
-              <h1 style={{fontSize:"clamp(28px,7vw,44px)",lineHeight:1.08,margin:"0 0 10px",letterSpacing:"-1.5px"}}>
+
+              <h1
+                style={{
+                  fontSize:"clamp(28px,7vw,44px)",
+                  lineHeight:1.08,
+                  margin:"0 0 10px",
+                  letterSpacing:"-1.5px"
+                }}
+              >
                 Find clients with AI.
               </h1>
-              <p style={{color:T.textSub,fontSize:14,lineHeight:1.7,maxWidth:650}}>
+
+              <p
+                style={{
+                  color:T.textSub,
+                  fontSize:14,
+                  lineHeight:1.7,
+                  maxWidth:650
+                }}
+              >
                 Build your outreach strategy, create personalized messages,
                 manage leads, and turn prospects into customers — all from one place.
               </p>
@@ -1526,8 +1542,12 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                   {card(
                     <>
                       <div style={{fontSize:25,marginBottom:8}}>{icon}</div>
-                      <div style={{fontWeight:700,fontSize:14,marginBottom:5}}>{title}</div>
-                      <div style={{fontSize:11,color:T.textSub,lineHeight:1.5}}>{desc}</div>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:5}}>
+                        {title}
+                      </div>
+                      <div style={{fontSize:11,color:T.textSub,lineHeight:1.5}}>
+                        {desc}
+                      </div>
                     </>
                   )}
                 </div>
@@ -1539,9 +1559,11 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                 <div style={{fontSize:18,fontWeight:700,marginBottom:5}}>
                   Start finding clients
                 </div>
+
                 <div style={{fontSize:12,color:T.textSub,marginBottom:13}}>
                   Tell ClientAI about your business and let AI build your outreach plan.
                 </div>
+
                 <button
                   onClick={()=>setScreen("generate")}
                   style={{
@@ -1599,7 +1621,10 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
         {screen==="generate"&&(
           <>
             <div style={{marginBottom:15}}>
-              <h2 style={{fontSize:24,margin:"0 0 6px"}}>⚡ AI Strategy Generator</h2>
+              <h2 style={{fontSize:24,margin:"0 0 6px"}}>
+                ⚡ AI Strategy Generator
+              </h2>
+
               <p style={{fontSize:12,color:T.textSub}}>
                 Create a personalized client acquisition strategy.
               </p>
@@ -1609,7 +1634,9 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
               <>
                 {card(
                   <>
-                    <div style={{fontWeight:700,marginBottom:13}}>About you</div>
+                    <div style={{fontWeight:700,marginBottom:13}}>
+                      About you
+                    </div>
 
                     <div style={{display:"grid",gap:11}}>
                       {inp("name","Your name","Name",form,setForm)}
@@ -1622,50 +1649,85 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                   </>
                 )}
 
-                {step===0&&card(
+                {card(
                   <>
-                    <div style={{fontWeight:700,marginBottom:8}}>Services you offer</div>
+                    <div style={{fontWeight:700,marginBottom:8}}>
+                      Services you offer
+                    </div>
+
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                      {services.map(s=>pill(
-                        s,
-                        form.offering.includes(s),
-                        ()=>toggle("offering",s)
-                      ))}
+                      {services.map(s=>
+                        pill(
+                          s,
+                          form.offering.includes(s),
+                          ()=>toggle("offering",s)
+                        )
+                      )}
                     </div>
                   </>
                 )}
 
-                {step===0&&card(
+                {card(
                   <>
-                    <div style={{fontWeight:700,marginBottom:8}}>Services you don't want</div>
+                    <div style={{fontWeight:700,marginBottom:8}}>
+                      Services you don't want
+                    </div>
+
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                      {services.map(s=>pill(
-                        s,
-                        form.notWanting.includes(s),
-                        ()=>toggle("notWanting",s)
-                      ))}
+                      {services.map(s=>
+                        pill(
+                          s,
+                          form.notWanting.includes(s),
+                          ()=>toggle("notWanting",s)
+                        )
+                      )}
                     </div>
                   </>
                 )}
 
-                {step===0&&card(
+                {card(
                   <>
-                    {inp("targetLocation","Example: India, Spain, USA","Target client location",form,setForm)}
+                    {inp(
+                      "targetLocation",
+                      "Example: India, Spain, USA",
+                      "Target client location",
+                      form,
+                      setForm
+                    )}
+
                     <div style={{height:11}} />
-                    {inp("targetIndustry","Example: Restaurants","Target client industry",form,setForm)}
+
+                    {inp(
+                      "targetIndustry",
+                      "Example: Restaurants",
+                      "Target client industry",
+                      form,
+                      setForm
+                    )}
+
                     <div style={{height:11}} />
-                    {inp("goal","Example: Get 5 new clients","Main goal",form,setForm)}
+
+                    {inp(
+                      "goal",
+                      "Example: Get 5 new clients",
+                      "Main goal",
+                      form,
+                      setForm
+                    )}
                   </>
                 )}
 
-                {step===0&&(
-                  <AIBtn
-                    label="⚡ Generate My Strategy"
-                    onClick={generateStrategy}
-                    disabled={!form.name||!form.industry||!form.targetLocation||!form.targetIndustry}
-                    loading={loading}
-                  />
-                )}
+                <AIBtn
+                  label="⚡ Generate My Strategy"
+                  onClick={generateStrategy}
+                  disabled={
+                    !form.name ||
+                    !form.industry ||
+                    !form.targetLocation ||
+                    !form.targetIndustry
+                  }
+                  loading={loading}
+                />
               </>
             )}
 
@@ -1674,8 +1736,11 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                 {card(
                   <>
                     <div style={{fontWeight:700,fontSize:16,marginBottom:5}}>
-                      {loading?"Creating your strategy...":"Your strategy"}
+                      {loading
+                        ?"Creating your strategy..."
+                        :"Your strategy"}
                     </div>
+
                     <div style={{fontSize:12,color:T.textSub}}>
                       {loading
                         ?"AI is preparing your client acquisition plan."
@@ -1685,7 +1750,13 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                 )}
 
                 {loading&&card(
-                  <div style={{textAlign:"center",padding:30,color:T.textSub}}>
+                  <div
+                    style={{
+                      textAlign:"center",
+                      padding:30,
+                      color:T.textSub
+                    }}
+                  >
                     <div style={{fontSize:30,marginBottom:10}}>⚡</div>
                     Generating...
                   </div>
@@ -1709,8 +1780,14 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                                 padding:"8px 5px",
                                 borderRadius:8,
                                 border:`1px solid ${T.btnBorder}`,
-                                background:activeTab===id?T.tabBg:"transparent",
-                                color:activeTab===id?T.accent:T.textSub,
+                                background:
+                                  activeTab===id
+                                    ?T.tabBg
+                                    :"transparent",
+                                color:
+                                  activeTab===id
+                                    ?T.accent
+                                    :T.textSub,
                                 cursor:"pointer",
                                 fontSize:11,
                                 fontWeight:600
@@ -1722,14 +1799,16 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                         </div>
 
                         {activeTab==="strategy"&&(
-                          <pre style={{
-                            whiteSpace:"pre-wrap",
-                            fontFamily:"inherit",
-                            fontSize:13,
-                            lineHeight:1.8,
-                            color:T.textMid,
-                            margin:0
-                          }}>
+                          <pre
+                            style={{
+                              whiteSpace:"pre-wrap",
+                              fontFamily:"inherit",
+                              fontSize:13,
+                              lineHeight:1.8,
+                              color:T.textMid,
+                              margin:0
+                            }}
+                          >
                             {result}
                           </pre>
                         )}
@@ -1739,26 +1818,37 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                             {parsed.whatsapp.length>0
                               ?parsed.whatsapp.map((m,i)=>(
                                 <div key={i}>
-                                  <div style={{
-                                    fontSize:12,
-                                    color:T.accent,
-                                    fontWeight:700,
-                                    marginBottom:5
-                                  }}>
+                                  <div
+                                    style={{
+                                      fontSize:12,
+                                      color:T.accent,
+                                      fontWeight:700,
+                                      marginBottom:5
+                                    }}
+                                  >
                                     {m.label}
                                   </div>
-                                  <div style={{
-                                    background:T.pillBg,
-                                    borderRadius:9,
-                                    padding:10,
-                                    fontSize:13,
-                                    lineHeight:1.6
-                                  }}>
+
+                                  <div
+                                    style={{
+                                      background:T.pillBg,
+                                      borderRadius:9,
+                                      padding:10,
+                                      fontSize:13,
+                                      lineHeight:1.6
+                                    }}
+                                  >
                                     {m.body.join(" ")}
                                   </div>
+
                                   <div style={{display:"flex",gap:6,marginTop:6}}>
                                     <button
-                                      onClick={()=>copyText(m.body.join(" "),`wa-${i}`)}
+                                      onClick={()=>
+                                        copyText(
+                                          m.body.join(" "),
+                                          `wa-${i}`
+                                        )
+                                      }
                                       style={{
                                         flex:1,
                                         padding:8,
@@ -1770,10 +1860,15 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                                         fontSize:11
                                       }}
                                     >
-                                      {copied===`wa-${i}`?"✓ Copied":"📋 Copy"}
+                                      {copied===`wa-${i}`
+                                        ?"✓ Copied"
+                                        :"📋 Copy"}
                                     </button>
+
                                     <button
-                                      onClick={()=>openWhatsApp(m.body.join(" "))}
+                                      onClick={()=>
+                                        openWhatsApp(m.body.join(" "))
+                                      }
                                       style={{
                                         flex:1,
                                         padding:8,
@@ -1791,7 +1886,15 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                                   </div>
                                 </div>
                               ))
-                              :<div style={{fontSize:13,color:T.textSub}}>Messages are included in the Strategy tab.</div>
+                              :
+                              <div
+                                style={{
+                                  fontSize:13,
+                                  color:T.textSub
+                                }}
+                              >
+                                Messages are included in the Strategy tab.
+                              </div>
                             }
                           </div>
                         )}
@@ -1801,20 +1904,36 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                             {parsed.emails.length>0
                               ?parsed.emails.map((m,i)=>(
                                 <div key={i}>
-                                  <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:5}}>
+                                  <div
+                                    style={{
+                                      fontSize:12,
+                                      color:T.accent,
+                                      fontWeight:700,
+                                      marginBottom:5
+                                    }}
+                                  >
                                     Subject: {m.subject}
                                   </div>
-                                  <div style={{
-                                    background:T.pillBg,
-                                    borderRadius:9,
-                                    padding:10,
-                                    fontSize:13,
-                                    lineHeight:1.6
-                                  }}>
+
+                                  <div
+                                    style={{
+                                      background:T.pillBg,
+                                      borderRadius:9,
+                                      padding:10,
+                                      fontSize:13,
+                                      lineHeight:1.6
+                                    }}
+                                  >
                                     {m.body.join(" ")}
                                   </div>
+
                                   <button
-                                    onClick={()=>openEmail(m.subject,m.body.join(" "))}
+                                    onClick={()=>
+                                      openEmail(
+                                        m.subject,
+                                        m.body.join(" ")
+                                      )
+                                    }
                                     style={{
                                       width:"100%",
                                       marginTop:6,
@@ -1831,70 +1950,42 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                                   </button>
                                 </div>
                               ))
-                              :<div style={{fontSize:13,color:T.textSub}}>Emails are included in the Strategy tab.</div>
-                            }
-                          </div>
-                        )}
-                      </>
-                    )}
+                              :
+           
+              
+          
+                  
+                
+              
+              
+      
+          
+                                
+                          
+                                
+                                
+                                    
+                                    
+                                  
+                
+                            
+                                
+                                
+                                
+                          
+                                  
+                                
+                                  
+                                    
+                                    
+                                    
 
-                    <div style={{display:"flex",gap:7}}>
-                      <button
-                        onClick={()=>copyText(result,"strategy")}
-                        style={{
-                          flex:1,
-                          padding:9,
-                          borderRadius:9,
-                          border:`1px solid ${T.btnBorder}`,
-                          background:T.btnBg,
-                          color:T.text,
-                          cursor:"pointer",
-                          fontWeight:600
-                        }}
-                      >
-                        {copied==="strategy"?"✓ Copied!":"📋 Copy All"}
-                      </button>
-
-                      <button
-                        onClick={()=>downloadFile(result,"clientai-strategy.txt")}
-                        style={{
-                          flex:1,
-                          padding:9,
-                          borderRadius:9,
-                          border:`1px solid ${T.btnBorder}`,
-                          background:T.btnBg,
-                          color:T.text,
-                          cursor:"pointer",
-                          fontWeight:600
-                        }}
-                      >
-                        📄 Download
-                      </button>
-
-                      <button
-                        onClick={reset}
-                        style={{
-                          flex:1,
-                          padding:9,
-                          borderRadius:9,
-                          border:`1px solid ${T.btnBorder}`,
-                          background:T.btnBg,
-                          color:T.text,
-                          cursor:"pointer",
-                          fontWeight:600
-                        }}
-                      >
-                        New
-                      </button>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        {/* HISTORY */}
-        {screen==="history"&&(
-          <>
-            <h2 style={{fontSize
+                                
+                              
+                                    
+                                      
+                                  
+                                  
+                              
+                                
+                
