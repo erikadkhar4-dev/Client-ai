@@ -657,3 +657,734 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
     </div>
   );
 }
+<div style={{
+    position:"absolute",
+    right:0,
+    top:"110%",
+    background:T.dropBg,
+    border:`1px solid ${T.dropBorder}`,
+    borderRadius:12,
+    padding:7,
+    zIndex:200,
+    width:185,
+    maxHeight:270,
+    overflowY:"auto",
+    boxShadow:"0 8px 30px rgba(0,0,0,0.25)"
+  }}>
+    {LANGUAGES.map(l=>(
+      <button
+        key={l.code}
+        onClick={()=>{
+          setLanguage(l.code);
+          setShowLangPicker(false);
+        }}
+        style={{
+          width:"100%",
+          display:"flex",
+          alignItems:"center",
+          gap:9,
+          padding:"9px 10px",
+          borderRadius:8,
+          border:"none",
+          background:language===l.code
+            ? (dark?"rgba(167,139,250,0.18)":"rgba(124,58,237,0.10)")
+            :"transparent",
+          color:T.text,
+          cursor:"pointer",
+          textAlign:"left",
+          fontSize:13
+        }}
+      >
+        <span>{l.flag}</span>
+        <span>{l.label}</span>
+      </button>
+    ))}
+  </div>
+)}
+</div>
+</div>
+
+{/* Mobile / desktop navigation */}
+<div style={{
+  background:T.navBg,
+  borderBottom:`1px solid ${T.navBorder}`,
+  overflowX:"auto",
+  padding:"8px 10px",
+  position:"sticky",
+  top:59,
+  zIndex:90
+}}>
+  <div style={{
+    display:"flex",
+    gap:6,
+    minWidth:"max-content"
+  }}>
+    {SCREENS.map(s=>(
+      <button
+        key={s.id}
+        onClick={()=>setScreen(s.id)}
+        style={{
+          border:"none",
+          borderRadius:9,
+          padding:"8px 11px",
+          background:screen===s.id
+            ? "linear-gradient(135deg,#a78bfa,#60a5fa)"
+            : T.tabBg,
+          color:screen===s.id ? "#fff" : T.textMid,
+          cursor:"pointer",
+          fontSize:12,
+          fontWeight:screen===s.id ? 700 : 500,
+          whiteSpace:"nowrap"
+        }}
+      >
+        {s.icon} {s.label}
+      </button>
+    ))}
+  </div>
+</div>
+
+{/* Main content */}
+<div style={{
+  maxWidth:900,
+  margin:"0 auto",
+  padding:"22px 15px"
+}}>
+
+  {/* DASHBOARD */}
+  {screen==="dashboard"&&(
+    <>
+      <div style={{marginBottom:20}}>
+        <div style={{
+          fontSize:12,
+          color:T.accent,
+          fontWeight:700,
+          textTransform:"uppercase",
+          letterSpacing:1
+        }}>
+          ClientAI Pro
+        </div>
+
+        <h1 style={{
+          fontSize:28,
+          margin:"5px 0 7px",
+          lineHeight:1.2
+        }}>
+          Find clients with AI.
+        </h1>
+
+        <p style={{
+          color:T.textSub,
+          fontSize:14,
+          lineHeight:1.6
+        }}>
+          Build your outreach strategy, create client messages,
+          manage leads and prepare proposals — all in one place.
+        </p>
+      </div>
+
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",
+        gap:10,
+        marginBottom:18
+      }}>
+        {[
+          ["⚡","AI Strategy","Generate a client acquisition plan","generate"],
+          ["👥","Client Tracker","Organize your prospects","tracker"],
+          ["📱","Social Posts","Create social media content","social"],
+          ["📄","Proposal","Create professional proposals","proposal"]
+        ].map(([icon,title,desc,id])=>(
+          <button
+            key={id}
+            onClick={()=>setScreen(id)}
+            style={{
+              textAlign:"left",
+              padding:15,
+              borderRadius:14,
+              background:T.cardBg,
+              border:`1px solid ${T.cardBorder}`,
+              color:T.text,
+              cursor:"pointer"
+            }}
+          >
+            <div style={{fontSize:24,marginBottom:8}}>{icon}</div>
+            <div style={{fontWeight:700,fontSize:14}}>{title}</div>
+            <div style={{
+              color:T.textSub,
+              fontSize:11,
+              lineHeight:1.5,
+              marginTop:4
+            }}>
+              {desc}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {card(
+        <>
+          <div style={{
+            fontWeight:700,
+            fontSize:16,
+            marginBottom:6
+          }}>
+            🚀 Start finding clients
+          </div>
+
+          <p style={{
+            color:T.textSub,
+            fontSize:13,
+            lineHeight:1.6,
+            marginBottom:12
+          }}>
+            Tell ClientAI about your business and target customer.
+            The AI will help you create an outreach strategy.
+          </p>
+
+          <button
+            onClick={()=>setScreen("generate")}
+            style={{
+              width:"100%",
+              padding:12,
+              borderRadius:10,
+              border:"none",
+              background:"linear-gradient(135deg,#a78bfa,#60a5fa)",
+              color:"#fff",
+              fontWeight:700,
+              cursor:"pointer"
+            }}
+          >
+            ⚡ Start Finding Clients
+          </button>
+        </>
+      )}
+
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",
+        gap:8
+      }}>
+        {[
+          ["📂",history.length,"Strategies"],
+          ["👥",clients.length,"Clients"],
+          ["🔔",followups.length,"Follow-ups"]
+        ].map(([icon,num,label])=>(
+          <div
+            key={label}
+            style={{
+              background:T.cardBg,
+              border:`1px solid ${T.cardBorder}`,
+              borderRadius:12,
+              padding:14,
+              textAlign:"center"
+            }}
+          >
+            <div style={{fontSize:18}}>{icon}</div>
+            <div style={{
+              fontSize:22,
+              fontWeight:800,
+              marginTop:4
+            }}>
+              {num}
+            </div>
+            <div style={{
+              fontSize:11,
+              color:T.textSub
+            }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
+
+  {/* GENERATE */}
+  {screen==="generate"&&(
+    <>
+      <div style={{marginBottom:15}}>
+        <h2 style={{margin:"0 0 5px"}}>⚡ AI Strategy Generator</h2>
+        <p style={{
+          color:T.textSub,
+          fontSize:13,
+          lineHeight:1.5
+        }}>
+          Tell us about your business and the type of clients you want.
+        </p>
+      </div>
+
+      {step<2&&(
+        <>
+          {card(
+            <>
+              <div style={{
+                display:"grid",
+                gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",
+                gap:12
+              }}>
+                {inp("name","Your name","Your name",form,setForm)}
+                {inp("company","Business name","Company / Business",form,setForm)}
+                {inp("phone","+91...","Phone / WhatsApp",form,setForm)}
+                {inp("email","you@example.com","Email",form,setForm,"email")}
+              </div>
+            </>
+          )}
+
+          {card(
+            <>
+              <div style={{
+                display:"grid",
+                gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",
+                gap:12
+              }}>
+                {sel("industry",industries,"Your industry",form,setForm)}
+                {inp("budget","Example: $500/month","Marketing budget",form,setForm)}
+                {inp("targetLocation","Example: India, Spain, USA","Target client location",form,setForm)}
+                {inp("targetIndustry","Example: restaurants","Target client industry",form,setForm)}
+              </div>
+            </>
+          )}
+
+          {card(
+            <>
+              <div style={{
+                fontSize:13,
+                color:T.textSub,
+                marginBottom:7
+              }}>
+                Services you offer
+              </div>
+
+              <div style={{
+                display:"flex",
+                flexWrap:"wrap",
+                gap:6
+              }}>
+                {services.map(x=>
+                  pill(
+                    x,
+                    form.offering.includes(x),
+                    ()=>toggle("offering",x)
+                  )
+                )}
+              </div>
+            </>
+          )}
+
+          {card(
+            <>
+              <div style={{
+                fontSize:13,
+                color:T.textSub,
+                marginBottom:7
+              }}>
+                Services you don't want to offer
+              </div>
+
+              <div style={{
+                display:"flex",
+                flexWrap:"wrap",
+                gap:6
+              }}>
+                {services.map(x=>
+                  pill(
+                    x,
+                    form.notWanting.includes(x),
+                    ()=>toggle("notWanting",x)
+                  )
+                )}
+              </div>
+            </>
+          )}
+
+          {card(
+            <>
+              <label style={{
+                display:"block",
+                fontSize:13,
+                color:T.textSub,
+                marginBottom:5
+              }}>
+                Your main goal
+              </label>
+
+              <textarea
+                value={form.goal}
+                placeholder="Example: I want to find 5 new small-business clients."
+                onChange={e=>setForm(f=>({...f,goal:e.target.value}))}
+                style={{
+                  width:"100%",
+                  minHeight:90,
+                  resize:"vertical",
+                  padding:12,
+                  borderRadius:10,
+                  border:`1px solid ${T.inputBorder}`,
+                  background:T.inputBg,
+                  color:T.text,
+                  outline:"none",
+                  boxSizing:"border-box",
+                  fontFamily:"inherit"
+                }}
+              />
+            </>
+          )}
+
+          <AIBtn
+            label="⚡ Generate My Client Strategy"
+            onClick={generateStrategy}
+            disabled={!form.name||!form.targetIndustry}
+            loading={loading}
+          />
+        </>
+      )}
+
+      {step===2&&(
+        <>
+          {loading?(
+            card(
+              <div style={{
+                textAlign:"center",
+                padding:30
+              }}>
+                <div style={{
+                  fontSize:35,
+                  marginBottom:10
+                }}>
+                  ⚡
+                </div>
+                <div style={{fontWeight:700}}>
+                  Creating your strategy...
+                </div>
+                <div style={{
+                  color:T.textSub,
+                  fontSize:13,
+                  marginTop:5
+                }}>
+                  ClientAI is preparing your outreach plan.
+                </div>
+              </div>
+            )
+          ):(
+            <>
+              <div style={{
+                display:"flex",
+                gap:7,
+                marginBottom:12
+              }}>
+                {["strategy","messages","emails"].map(x=>(
+                  <button
+                    key={x}
+                    onClick={()=>setActiveTab(x)}
+                    style={{
+                      flex:1,
+                      padding:9,
+                      borderRadius:9,
+                      border:`1px solid ${T.btnBorder}`,
+                      background:activeTab===x
+                        ? "linear-gradient(135deg,#a78bfa,#60a5fa)"
+                        : T.btnBg,
+                      color:activeTab===x?"#fff":T.text,
+                      cursor:"pointer",
+                      fontSize:12,
+                      fontWeight:600
+                    }}
+                  >
+                    {x==="strategy"?"Strategy":
+                     x==="messages"?"Messages":"Emails"}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab==="strategy"&&
+                <ResultBox
+                  text={result}
+                  copyId="strategy"
+                  filename="clientai-strategy.txt"
+                />
+              }
+
+              {activeTab==="messages"&&(
+                <>
+                  {parsed.whatsapp.length===0?(
+                    <ResultBox
+                      text={result}
+                      copyId="messages"
+                    />
+                  ):parsed.whatsapp.map((m,i)=>(
+                    card(
+                      <div key={i}>
+                        <div style={{
+                          fontWeight:700,
+                          marginBottom:8
+                        }}>
+                          💬 {m.label}
+                        </div>
+
+                        <div style={{
+                          color:T.textMid,
+                          fontSize:13,
+                          lineHeight:1.7,
+                          whiteSpace:"pre-wrap"
+                        }}>
+                          {m.body.join("\n")}
+                        </div>
+
+                        <button
+                          onClick={()=>openWhatsApp(m.body.join("\n"))}
+                          style={{
+                            marginTop:10,
+                            padding:"8px 12px",
+                            borderRadius:8,
+                            border:"none",
+                            background:"#25D366",
+                            color:"#fff",
+                            fontWeight:700,
+                            cursor:"pointer"
+                          }}
+                        >
+                          Open WhatsApp
+                        </button>
+                      </div>
+                    )
+                  ))}
+                </>
+              )}
+
+              {activeTab==="emails"&&(
+                <>
+                  {parsed.emails.length===0?(
+                    <ResultBox
+                      text={result}
+                      copyId="emails"
+                    />
+                  ):parsed.emails.map((m,i)=>(
+                    card(
+                      <div key={i}>
+                        <div style={{
+                          fontWeight:700,
+                          marginBottom:7
+                        }}>
+                          ✉️ {m.subject}
+                        </div>
+
+                        <div style={{
+                          color:T.textMid,
+                          fontSize:13,
+                          lineHeight:1.7,
+                          whiteSpace:"pre-wrap"
+                        }}>
+                          {m.body.join("\n")}
+                        </div>
+
+                        <button
+                          onClick={()=>openEmail(
+                            m.subject,
+                            m.body.join("\n")
+                          )}
+                          style={{
+                            marginTop:10,
+                            padding:"8px 12px",
+                            borderRadius:8,
+                            border:"none",
+                            background:T.accentAlt,
+                            color:"#fff",
+                            fontWeight:700,
+                            cursor:"pointer"
+                          }}
+                        >
+                          Open Email
+                        </button>
+                      </div>
+                    )
+                  ))}
+                </>
+              )}
+
+              <button
+                onClick={reset}
+                style={{
+                  width:"100%",
+                  padding:11,
+                  marginTop:12,
+                  borderRadius:10,
+                  border:`1px solid ${T.btnBorder}`,
+                  background:T.btnBg,
+                  color:T.text,
+                  cursor:"pointer",
+                  fontWeight:600
+                }}
+              >
+                ← Create Another Strategy
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </>
+  )}
+
+  {/* HISTORY */}
+  {screen==="history"&&(
+    <>
+      <h2>📂 Strategy History</h2>
+
+      {history.length===0?(
+        card(
+          <div style={{
+            textAlign:"center",
+            padding:25,
+            color:T.textSub
+          }}>
+            No strategies yet.
+            <br/>
+            Generate your first strategy to see it here.
+          </div>
+        )
+      ):history.map(item=>(
+        <button
+          key={item.id}
+          onClick={()=>setViewingHistory(
+            viewingHistory?.id===item.id?null:item
+          )}
+          style={{
+            width:"100%",
+            textAlign:"left",
+            marginTop:9,
+            padding:14,
+            borderRadius:12,
+            border:`1px solid ${T.cardBorder}`,
+            background:T.cardBg,
+            color:T.text,
+            cursor:"pointer"
+          }}
+        >
+          <div style={{fontWeight:700}}>
+            {item.company||"Untitled strategy"}
+          </div>
+
+          <div style={{
+            fontSize:11,
+            color:T.textSub,
+            marginTop:4
+          }}>
+            {item.date} · {item.targetIndustry||"No target industry"}
+          </div>
+
+          {viewingHistory?.id===item.id&&(
+            <pre style={{
+              whiteSpace:"pre-wrap",
+              marginTop:12,
+              color:T.textMid,
+              fontFamily:"inherit",
+              fontSize:12,
+              lineHeight:1.7
+            }}>
+              {item.text}
+            </pre>
+          )}
+        </button>
+      ))}
+    </>
+  )}
+
+  {/* TRACKER */}
+  {screen==="tracker"&&(
+    <>
+      <div style={{
+        display:"flex",
+        justifyContent:"space-between",
+        alignItems:"center",
+        marginBottom:12
+      }}>
+        <div>
+          <h2 style={{margin:0}}>👥 Client Tracker</h2>
+          <div style={{
+            color:T.textSub,
+            fontSize:12,
+            marginTop:4
+          }}>
+            Keep track of your prospects.
+          </div>
+        </div>
+
+        <button
+          onClick={()=>setShowAddClient(v=>!v)}
+          style={{
+            padding:"9px 12px",
+            borderRadius:9,
+            border:"none",
+            background:"linear-gradient(135deg,#a78bfa,#60a5fa)",
+            color:"#fff",
+            cursor:"pointer",
+            fontWeight:700
+          }}
+        >
+          + Add
+        </button>
+      </div>
+
+      {showAddClient&&card(
+        <>
+          <div style={{
+            display:"grid",
+            gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+            gap:10
+          }}>
+            {inp("name","Client name","Name",newClient,setNewClient)}
+            {inp("company","Company","Company",newClient,setNewClient)}
+            {inp("contact","Phone or email","Contact",newClient,setNewClient)}
+            {sel(
+              "status",
+              Object.keys(statusColors),
+              "Status",
+              newClient,
+              setNewClient
+            )}
+          </div>
+
+          <textarea
+            placeholder="Notes"
+            value={newClient.notes}
+            onChange={e=>setNewClient(n=>({...n,notes:e.target.value}))}
+            style={{
+              width:"100%",
+              marginTop:10,
+              minHeight:70,
+              padding:10,
+              borderRadius:9,
+              background:T.inputBg,
+              border:`1px solid ${T.inputBorder}`,
+              color:T.text,
+              boxSizing:"border-box"
+            }}
+          />
+
+          <button
+            onClick={()=>{
+              if(!newClient.name&&!newClient.company)return;
+
+              setClients(c=>[
+                {
+                  ...newClient,
+                  id:Date.now()
+                },
+                ...c
+              ]);
+
+              setNewClient({
+                name:"",
+                company:"",
+                contact:"",
+                status:"Not Contacted",
+                notes:""
+              });
+
+              setShowAddClient(false);
+            }}
+            style={{
+              width:"100%",
+              marginTop:9,
+              padding:10,
+              borderRadius:9,
+              border:"none",
+   
