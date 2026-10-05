@@ -1951,6 +1951,37 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
                                 </div>
                               ))
                               :
+                              {LANGUAGES.map(l=>(
+  <button
+    key={l.code}
+    onClick={()=>{
+      setLanguage(l.code);
+      setShowLangPicker(false);
+    }}
+    style={{
+      width:"100%",
+      display:"flex",
+      alignItems:"center",
+      gap:9,
+      padding:"8px 9px",
+      borderRadius:8,
+      border:"none",
+      background:l.code===language?T.tabBg:"transparent",
+      color:T.text,
+      cursor:"pointer",
+      textAlign:"left",
+      fontSize:12
+    }}
+  >
+    <span style={{fontSize:16}}>{l.flag}</span>
+    <span>{l.label}</span>
+    {l.code===language&&(
+      <span style={{marginLeft:"auto",color:T.accent}}>✓</span>
+    )}
+  </button>
+))}
+</div>
+)}
            
               
           
