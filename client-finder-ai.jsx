@@ -330,7 +330,16 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
       {/* Header */}
       <div style={{background:T.headerBg,backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.headerBorder}`,padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#a78bfa,#60a5fa)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>⚡</div>
+          <img
+  src="/Client-ai/Public/file_00000000053c08209b02a58adf0c1eeb3.png"
+  alt="Client AI Logo"
+  style={{
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    objectFit: "cover"
+  }}
+/>
           <div>
             <div style={{fontWeight:700,fontSize:14,color:T.text}}>ClientAI Pro</div>
             <div style={{fontSize:10,color:T.textSub}}>10 AI Tools · {selectedLang.flag} {selectedLang.label}</div>
