@@ -1,4 +1,4 @@
-seeimport { useState } from "react";
+import { useState } from "react";
 
 const LANGUAGES = [
   { code: "English", flag: "🇬🇧", label: "English" },
