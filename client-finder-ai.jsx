@@ -332,7 +332,7 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <img
   src="/Public/file_00000000053c08209b02a58adf0c1eeb3.png"
-4. Save and commit the change.
+
   alt="Client AI Logo"
   style={{
     width: 32,
