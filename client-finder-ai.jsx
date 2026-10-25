@@ -1,4 +1,4 @@
-import { useState } from "react";
+seeimport { useState } from "react";
 
 const LANGUAGES = [
   { code: "English", flag: "🇬🇧", label: "English" },
@@ -331,7 +331,8 @@ Write 2 versions: one WhatsApp message (short, friendly, under 50 words) and one
       <div style={{background:T.headerBg,backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.headerBorder}`,padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <img
-  src="/Client-ai/Public/file_00000000053c08209b02a58adf0c1eeb3.png"
+  src="/Public/file_00000000053c08209b02a58adf0c1eeb3.png"
+4. Save and commit the change.
   alt="Client AI Logo"
   style={{
     width: 32,
